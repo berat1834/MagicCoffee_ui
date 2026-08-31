@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, submitOrder } from './api';
 import type { CartLine, Catalog, Fulfillment, Product, Screen, Selection } from './types';
@@ -22,10 +22,11 @@ function Intro({ onStart }: { onStart: () => void }) {
 }
 
 function OrderType({ onContinue }: { onContinue: (type: Fulfillment) => void }) {
+  const [soundOn, setSoundOn] = useState(true);
   return <main className="order-type page-enter">
     <div className="order-type__actions">
       <button className="utility-button"><span><Languages /></span><small>Dil seçimi</small><b>Türkçe</b></button>
-      <button className="utility-button"><span className="green"><Volume2 /></span><small>Kiosk sesi</small><b>Açık</b></button>
+      <button className="utility-button" onClick={() => setSoundOn((value) => !value)}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>Kiosk sesi</small><b>{soundOn ? 'Açık' : 'Kapalı'}</b></button>
     </div>
     <section className="order-type__content">
       <h1>Siparişinizi nasıl almak istersiniz?</h1><p>Kahvenizi mağazada içebilir veya paket alabilirsiniz.</p>
