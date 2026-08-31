@@ -167,7 +167,7 @@ html.portrait-kiosk .payment {
 .customizer > header > b { color: var(--red); font-size: 16px; }
 .customizer__hero { height: 150px; flex-shrink: 0; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, #f7d7cb, #8d1022); }
 .customizer__hero::before { content: ""; position: absolute; inset: 0; background: repeating-conic-gradient(from 45deg at 50% 50%, rgba(255,255,255,.04) 0 8deg, transparent 8deg 20deg); }
-.customizer__hero img { width: 250px; height: 175px; object-fit: cover; border-radius: 50%; mix-blend-mode: screen; filter: saturate(1.15) contrast(1.05) drop-shadow(0 14px 15px rgba(50,0,0,.28)); }
+.customizer__hero img { width: 250px; height: 175px; object-fit: contain; border-radius: 0; mix-blend-mode: normal; filter: saturate(1.08) contrast(1.04) drop-shadow(0 14px 15px rgba(50,0,0,.28)); }
 .customizer__hero > span { font-size: 80px; z-index: 2; }
 .customizer__hero > div { position: absolute; left: 18px; bottom: 16px; z-index: 2; display: flex; flex-direction: column; color: white; }
 .customizer__hero > div span { font-size: 7px; letter-spacing: .2em; font-weight: 900; }
@@ -301,7 +301,7 @@ html.portrait-kiosk .payment {
 .success > .primary-button { min-width: 220px; padding: 0 24px; }
 
 .loading, .load-error { position: fixed; z-index: 100; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
-.loading { color: white; background: radial-gradient(circle at 50% 30%, #d43b4d, #8f0e22 60%, #630818); }
+.loading { color: white; background: radial-gradient(circle at 50% 30%, #9b6138, #5b321f 58%, #33180f 100%); }
 .loading > span { width: 46px; height: 46px; margin-top: 28px; border: 4px solid rgba(255,255,255,.25); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
 .loading p { font-size: 12px; font-weight: 700; opacity: .8; }
 .load-error { background: #fff8f4; }
@@ -388,23 +388,52 @@ html.portrait-kiosk .product-card__body h3 {
 html.portrait-kiosk .intro {
   height: var(--kiosk-height);
   min-height: var(--kiosk-height);
+  overflow: hidden;
   background:
-    radial-gradient(circle at 50% 46%, rgba(255, 229, 195, .88) 0 31%, transparent 31.5%),
-    repeating-conic-gradient(from -18deg at 52% 40%, rgba(255, 255, 255, .08) 0 10deg, transparent 10deg 23deg),
-    radial-gradient(circle at 70% 25%, #8a4a2a 0, #612612 31%, #341108 72%, #190705 100%);
+    radial-gradient(circle at 50% 47%, #f4d6a8 0 31%, #c98955 56%, #5c2c17 100%);
+}
+
+html.portrait-kiosk .intro::before {
+  display: block;
+  inset: -18%;
+  background: repeating-conic-gradient(from 20deg at 50% 50%, rgba(255,255,255,.07) 0 7deg, transparent 7deg 17deg);
+  transform: rotate(-8deg);
+}
+
+html.portrait-kiosk .intro::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(61, 28, 12, .08) 0%, transparent 30%, transparent 54%, rgba(58, 27, 12, .34) 72%, rgba(45, 18, 7, .54) 100%),
+    radial-gradient(ellipse at 50% 64%, rgba(40, 17, 8, .5), rgba(40, 17, 8, .14) 24%, transparent 48%);
 }
 
 html.portrait-kiosk .intro__header {
-  padding: 42px 34px 0;
+  position: absolute;
+  z-index: 4;
+  left: 36px;
+  top: 136px;
+  padding: 0;
+}
+
+html.portrait-kiosk .intro__header .brand-mark--light .brand-mark__copy {
+  color: white;
+  text-shadow: 0 3px 12px rgba(30, 10, 3, .78);
 }
 
 html.portrait-kiosk .intro__badge {
-  width: 86px;
-  height: 86px;
-  margin-top: 392px;
+  display: none;
+  width: 76px;
+  height: 76px;
+  margin-top: 0;
   font-size: 9px;
-  background: rgba(46, 14, 8, .46);
-  backdrop-filter: blur(10px);
+  color: white;
+  background: rgba(55, 22, 9, .5);
+  backdrop-filter: none;
+  text-shadow: 0 2px 8px rgba(25, 8, 2, .6);
 }
 
 html.portrait-kiosk .brand-mark__star {
@@ -423,46 +452,59 @@ html.portrait-kiosk .brand-mark__copy em {
 }
 
 html.portrait-kiosk .intro__coffee-art {
-  width: 112%;
+  width: 124%;
+  height: auto;
   max-width: none;
   left: 50%;
-  top: 184px;
+  top: 126px;
   bottom: auto;
-  transform: translateX(-50%) rotate(-2deg);
-  filter: drop-shadow(0 38px 28px rgba(25, 8, 2, .34));
-  opacity: .9;
+  z-index: 2;
+  transform: translateX(-50%);
+  object-fit: contain;
+  object-position: center center;
+  border-radius: 50%;
+  filter: saturate(1.04) contrast(1.02) drop-shadow(0 30px 28px rgba(55, 26, 12, .32));
+  opacity: 1;
 }
 
 html.portrait-kiosk .intro__copy {
   position: absolute;
-  inset-inline: 24px;
-  top: 274px;
-  padding: 16px 16px 15px;
-  border: 1px solid rgba(255, 255, 255, .2);
-  border-radius: 20px;
-  background: rgba(55, 18, 9, .78);
-  box-shadow: 0 18px 45px rgba(26, 5, 2, .28);
+  inset-inline: 30px;
+  top: auto;
+  bottom: 160px;
+  z-index: 4;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 html.portrait-kiosk .intro__copy p {
-  font-size: 10px;
-  letter-spacing: .24em;
+  font-size: 9px;
+  letter-spacing: .22em;
   color: #ffd885;
   text-shadow: 0 2px 8px rgba(0, 0, 0, .42);
 }
 
 html.portrait-kiosk .intro__copy h1 {
-  margin: 7px 0 8px;
-  font-size: 42px;
+  max-width: 300px;
+  margin: 6px auto 8px;
+  font-size: 39px;
   line-height: .92;
-  text-shadow: 0 3px 10px rgba(0, 0, 0, .5);
+  color: white;
+  text-shadow: 0 5px 0 rgba(86, 42, 20, .32), 0 11px 24px rgba(20, 6, 2, .74);
+}
+
+html.portrait-kiosk .intro__copy h1 i {
+  color: #ffd36d;
 }
 
 html.portrait-kiosk .intro__copy span {
   display: block;
-  max-width: 310px;
+  max-width: 280px;
   margin: 0 auto;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1.35;
   color: rgba(255, 255, 255, .88);
   text-shadow: 0 2px 8px rgba(0, 0, 0, .48);
@@ -473,6 +515,8 @@ html.portrait-kiosk .intro__touch {
   width: calc(100% - 48px);
   min-height: 54px;
   font-size: 14px;
+  background: rgba(57, 27, 13, .74);
+  backdrop-filter: none;
 }
 
 html.portrait-kiosk .order-type {
@@ -835,45 +879,200 @@ html.portrait-kiosk .cart-drawer > footer .primary-button {
 }
 
 html.portrait-kiosk .customizer {
-  height: auto;
-  max-height: calc(var(--kiosk-height) - 28px);
-  border-radius: 22px;
+  position: relative;
+  width: 100%;
+  height: var(--kiosk-height);
+  max-height: var(--kiosk-height);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html.portrait-kiosk .modal-backdrop:not(.modal-backdrop--drawer) {
+  align-items: stretch;
+  padding: 0;
+  background: #fffaf7;
+  backdrop-filter: none;
 }
 
 html.portrait-kiosk .customizer > header {
-  min-height: 60px;
+  min-height: 72px;
+  padding: 10px 16px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  border-bottom: 0;
+  background: #fff;
+}
+
+html.portrait-kiosk .customizer > header h2 {
+  margin-top: 5px;
+  color: #1f1822;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+html.portrait-kiosk .customizer > header > b {
+  color: #8b542f;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+html.portrait-kiosk .customizer > header small {
+  color: #a86f3d;
 }
 
 html.portrait-kiosk .customizer__hero {
-  height: 100px;
+  height: 142px;
+  isolation: isolate;
+  justify-content: center;
+  background: linear-gradient(135deg, #4a2514, #9b6138 58%, #5a301d);
+}
+
+html.portrait-kiosk .customizer__hero::before {
+  display: block;
+  z-index: -1;
+  inset: -26%;
+  opacity: .42;
+  background: repeating-conic-gradient(from 18deg at 50% 50%, rgba(255, 255, 255, .12) 0 8deg, transparent 8deg 19deg);
+  transform: rotate(-5deg);
+}
+
+html.portrait-kiosk .customizer__hero::after {
+  display: none;
 }
 
 html.portrait-kiosk .customizer__hero img {
-  width: 190px;
-  height: 122px;
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: min(278px, 72%);
+  height: 126px;
+  border-radius: 0;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  object-position: center center;
+  opacity: 1;
+  mix-blend-mode: normal;
+  filter: saturate(1.08) contrast(1.04) drop-shadow(0 12px 16px rgba(42, 18, 8, .28));
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+html.portrait-kiosk .customizer__hero > div {
+  left: 16px;
+  bottom: 18px;
+  z-index: 2;
+  color: white;
+  text-shadow: 0 2px 8px rgba(42, 18, 8, .46);
+}
+
+html.portrait-kiosk .customizer__hero > div span {
+  font-size: 7px;
+  letter-spacing: .14em;
+}
+
+html.portrait-kiosk .customizer__hero > div b {
+  font-size: 16px;
 }
 
 html.portrait-kiosk .steps {
-  height: 46px;
+  height: 49px;
+  padding: 0 14px;
+  border-bottom: 1px solid #eadcd2;
+  background: #fff;
 }
 
 html.portrait-kiosk .steps button {
+  position: relative;
+  border-bottom-width: 3px;
+  color: #8e7f77;
   font-size: 7px;
 }
 
+html.portrait-kiosk .steps button.active {
+  border-bottom-color: #a86f3d;
+  color: #8b542f;
+}
+
+html.portrait-kiosk .steps button i {
+  background: #eee5df;
+}
+
+html.portrait-kiosk .steps button.active i {
+  background: #a86f3d;
+}
+
 html.portrait-kiosk .customizer__content {
-  min-height: 180px;
-  padding: 12px;
+  min-height: 0;
+  padding: 24px 14px 96px;
+  overflow-y: auto;
+  background: #fffaf7;
+}
+
+html.portrait-kiosk .customizer__title {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+html.portrait-kiosk .customizer__title small {
+  color: #a86f3d;
+}
+
+html.portrait-kiosk .customizer__title h3 {
+  color: #1f1822;
+  font-size: 20px;
+}
+
+html.portrait-kiosk .customizer__title p {
+  max-width: 130px;
+  font-size: 8px;
+  line-height: 1.35;
 }
 
 html.portrait-kiosk .option-list button {
-  min-height: 58px;
+  min-height: 68px;
+  border-color: #d8b397;
   border-radius: 13px;
+  background: #fff8f3;
+}
+
+html.portrait-kiosk .option-list button > span {
+  border-color: #dac8bd;
+  border-radius: 9px;
+}
+
+html.portrait-kiosk .option-list button b {
+  color: #2a2020;
+  font-size: 10px;
+}
+
+html.portrait-kiosk .option-list button small {
+  color: #9b6b4e;
+}
+
+html.portrait-kiosk .option-list button.selected {
+  border-color: #a86f3d;
+  background: #fff3ec;
+  box-shadow: 0 6px 18px rgba(95, 48, 24, .08);
+}
+
+html.portrait-kiosk .option-list button.selected > span {
+  border-color: #8b542f;
+  background: #8b542f;
+}
+
+html.portrait-kiosk .option-list button.selected small {
+  color: #8b542f;
 }
 
 html.portrait-kiosk .customizer > footer {
-  min-height: 58px;
-  padding: 8px 12px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 76px;
+  padding: 10px 16px;
+  background: white;
+  box-shadow: 0 -10px 26px rgba(52, 24, 14, .08);
 }
 
 html.portrait-kiosk .primary-button,

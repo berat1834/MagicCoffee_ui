@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, submitOrder } from './api';
-import type { CartLine, Catalog, Fulfillment, Product, Screen, Selection } from './types';
+import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen, Selection } from './types';
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
 
@@ -14,9 +14,9 @@ function BrandMark({ light = false, compact = false }: { light?: boolean; compac
 function Intro({ onStart }: { onStart: () => void }) {
   return <button type="button" className="intro" onClick={onStart} aria-label="Sipariş vermeye başla">
     <div className="intro__grain" />
-    <header className="intro__header"><BrandMark light /><span className="intro__badge">BARISTA HIZI<br />KIOSK RAHATLIĞI</span></header>
-    <img className="intro__burger intro__coffee-art" src="/images/products/hero-coffee.svg" alt="Magic Coffee" />
-    <div className="intro__copy"><p>YENİ KAHVE MOLAN</p><h1>Kahveni<br /><i>Magic</i> hazırla</h1><span>Boyutunu, sütünü, şurubunu ve ekstra shotunu seç.</span></div>
+    <header className="intro__header"><BrandMark light /></header>
+    <img className="intro__burger intro__coffee-art" src="/images/products/cappuccino.png" alt="Magic Coffee Cappuccino" />
+    <div className="intro__copy"><p>YENİ KAHVE MOLAN</p><h1>Kahveni<br /><i>Magic</i> hazırla</h1><span>Boyutunu, sütünü ve şurubunu seç.</span></div>
     <div className="intro__touch"><span>Sipariş vermek için dokun</span><ArrowRight /></div>
   </button>;
 }
@@ -65,8 +65,15 @@ function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog;
   </main>;
 }
 
+function limitSteps(steps: [string, CustomizationStep][], maxSteps = 3) {
+  if (steps.length <= maxSteps) return steps;
+  const required = steps.filter(([, step]) => step.required);
+  const optional = steps.filter(([, step]) => !step.required);
+  return [...required, ...optional].slice(0, maxSteps);
+}
+
 function Customizer({ product, initial, onClose, onSave }: { product: Product; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
-  const steps = Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled);
+  const steps = limitSteps(Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled));
   const [choices, setChoices] = useState<Record<string, string[]>>(() => initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.options.filter((option) => option.defaultSelected && option.enabled).map((option) => option.id)])));
   const [index, setIndex] = useState(0);
   const [error, setError] = useState('');
