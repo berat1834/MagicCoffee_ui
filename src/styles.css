@@ -428,25 +428,24 @@ html.portrait-kiosk .intro__copy {
   inset-inline: 24px;
   top: 274px;
   padding: 16px 16px 15px;
-  border: 1px solid rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .2);
   border-radius: 20px;
-  background: rgba(45, 14, 7, .54);
-  box-shadow: 0 18px 45px rgba(26, 5, 2, .22);
-  backdrop-filter: blur(8px);
+  background: rgba(55, 18, 9, .78);
+  box-shadow: 0 18px 45px rgba(26, 5, 2, .28);
 }
 
 html.portrait-kiosk .intro__copy p {
   font-size: 10px;
   letter-spacing: .24em;
   color: #ffd885;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .42);
 }
 
 html.portrait-kiosk .intro__copy h1 {
   margin: 7px 0 8px;
   font-size: 42px;
   line-height: .92;
-  text-shadow: 0 3px 12px rgba(0, 0, 0, .38);
+  text-shadow: 0 3px 10px rgba(0, 0, 0, .5);
 }
 
 html.portrait-kiosk .intro__copy span {
@@ -456,7 +455,7 @@ html.portrait-kiosk .intro__copy span {
   font-size: 10px;
   line-height: 1.35;
   color: rgba(255, 255, 255, .88);
-  text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .48);
 }
 
 html.portrait-kiosk .intro__touch {
