@@ -391,8 +391,10 @@ html.portrait-kiosk .intro__header {
 html.portrait-kiosk .intro__badge {
   width: 86px;
   height: 86px;
-  margin-top: 158px;
+  margin-top: 392px;
   font-size: 9px;
+  background: rgba(46, 14, 8, .46);
+  backdrop-filter: blur(10px);
 }
 
 html.portrait-kiosk .brand-mark__star {
@@ -411,39 +413,50 @@ html.portrait-kiosk .brand-mark__copy em {
 }
 
 html.portrait-kiosk .intro__coffee-art {
-  width: 118%;
+  width: 112%;
   max-width: none;
   left: 50%;
-  top: 138px;
+  top: 184px;
   bottom: auto;
   transform: translateX(-50%) rotate(-2deg);
   filter: drop-shadow(0 38px 28px rgba(25, 8, 2, .34));
+  opacity: .9;
 }
 
 html.portrait-kiosk .intro__copy {
   position: absolute;
   inset-inline: 24px;
-  top: 354px;
-  padding: 0;
+  top: 274px;
+  padding: 16px 16px 15px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 20px;
+  background: rgba(45, 14, 7, .54);
+  box-shadow: 0 18px 45px rgba(26, 5, 2, .22);
+  backdrop-filter: blur(8px);
 }
 
 html.portrait-kiosk .intro__copy p {
-  font-size: 12px;
-  letter-spacing: .34em;
+  font-size: 10px;
+  letter-spacing: .24em;
+  color: #ffd885;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .3);
 }
 
 html.portrait-kiosk .intro__copy h1 {
-  margin: 6px 0 8px;
-  font-size: 58px;
-  line-height: .78;
+  margin: 7px 0 8px;
+  font-size: 42px;
+  line-height: .92;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, .38);
 }
 
 html.portrait-kiosk .intro__copy span {
   display: block;
   max-width: 310px;
   margin: 0 auto;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1.35;
+  color: rgba(255, 255, 255, .88);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
 }
 
 html.portrait-kiosk .intro__touch {
