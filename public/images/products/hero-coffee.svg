@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 900">
+  <defs>
+    <radialGradient id="steam" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#fff9ec" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffe2b7" stop-opacity="0.08"/>
+    </radialGradient>
+    <linearGradient id="cup" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#fffdf8"/>
+      <stop offset="0.5" stop-color="#ffe7cf"/>
+      <stop offset="1" stop-color="#c75d36"/>
+    </linearGradient>
+    <linearGradient id="coffee" x1="0" x2="1">
+      <stop stop-color="#4b2416"/>
+      <stop offset="1" stop-color="#1e0e09"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="380" cy="440" rx="330" ry="330" fill="url(#steam)"/>
+  <path d="M255 170c-54 55 45 77-13 137M385 125c-68 72 56 103-21 178M510 174c-50 49 44 81-18 134" fill="none" stroke="#ffe7bf" stroke-width="34" stroke-linecap="round" opacity="0.65"/>
+  <ellipse cx="384" cy="386" rx="228" ry="76" fill="#fff9ef"/>
+  <ellipse cx="384" cy="383" rx="188" ry="48" fill="url(#coffee)"/>
+  <path d="M165 388h438l-40 305c-8 60-61 105-123 105H329c-62 0-115-45-123-105z" fill="url(#cup)"/>
+  <path d="M602 450h56c62 0 91 76 46 119-30 29-73 37-119 32l13-87c33 3 58-2 71-15 13-13 2-31-18-31h-52z" fill="#ffe1c3"/>
+  <path d="M205 690h357c-14 62-65 108-127 108H333c-62 0-113-46-128-108z" fill="#f7f0e8"/>
+  <ellipse cx="385" cy="397" rx="128" ry="23" fill="#b88455" opacity="0.35"/>
+  <path d="M231 508c104 53 213 53 326 0" fill="none" stroke="#fff8ef" stroke-width="26" stroke-linecap="round" opacity="0.76"/>
+  <path d="M286 605c67 25 133 25 197 0" fill="none" stroke="#fff8ef" stroke-width="18" stroke-linecap="round" opacity="0.52"/>
+  <ellipse cx="385" cy="812" rx="248" ry="38" fill="#260906" opacity="0.22"/>
+</svg>

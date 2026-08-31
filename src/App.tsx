@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Minus, Package, Plus, RotateCcw, ShoppingBag, Sparkles, Trash2, UtensilsCrossed, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, submitOrder } from './api';
 import type { CartLine, Catalog, Fulfillment, Product, Screen, Selection } from './types';
@@ -13,20 +13,28 @@ function BrandMark({ light = false, compact = false }: { light?: boolean; compac
 
 function Intro({ onStart }: { onStart: () => void }) {
   return <button type="button" className="intro" onClick={onStart} aria-label="Sipariş vermeye başla">
-    <div className="intro__grain" /><header className="intro__header"><BrandMark light /><span className="intro__badge">BARISTA HIZI<br />KIOSK RAHATLIĞI</span></header>
+    <div className="intro__grain" />
+    <header className="intro__header"><BrandMark light /><span className="intro__badge">BARISTA HIZI<br />KIOSK RAHATLIĞI</span></header>
+    <img className="intro__burger intro__coffee-art" src="/images/products/hero-coffee.svg" alt="Magic Coffee" />
     <div className="intro__copy"><p>YENİ KAHVE MOLAN</p><h1>Kahveni<br /><i>Magic</i> hazırla</h1><span>Boyutunu, sütünü, şurubunu ve ekstra shotunu seç.</span></div>
-    <div className="intro__burger intro__cup"><Coffee /></div><div className="intro__touch"><span>Sipariş vermek için dokun</span><ArrowRight /></div>
+    <div className="intro__touch"><span>Sipariş vermek için dokun</span><ArrowRight /></div>
   </button>;
 }
 
 function OrderType({ onContinue }: { onContinue: (type: Fulfillment) => void }) {
-  return <main className="order-type page-enter"><section className="order-type__content">
-    <h1>Siparişinizi nasıl almak istersiniz?</h1><p>Kahvenizi mağazada içebilir veya paket alabilirsiniz.</p>
-    <div className="order-type__grid">
-      <button onClick={() => onContinue('restaurant')}><span><UtensilsCrossed /></span><b>Burada</b><small>Mağazada keyifle tüket</small></button>
-      <button onClick={() => onContinue('package')}><span><ShoppingBag /></span><b>Paket</b><small>Yanında götür</small></button>
+  return <main className="order-type page-enter">
+    <div className="order-type__actions">
+      <button className="utility-button"><span><Languages /></span><small>Dil seçimi</small><b>Türkçe</b></button>
+      <button className="utility-button"><span className="green"><Volume2 /></span><small>Kiosk sesi</small><b>Açık</b></button>
     </div>
-  </section></main>;
+    <section className="order-type__content">
+      <h1>Siparişinizi nasıl almak istersiniz?</h1><p>Kahvenizi mağazada içebilir veya paket alabilirsiniz.</p>
+      <div className="order-type__grid">
+        <button onClick={() => onContinue('restaurant')}><span><UtensilsCrossed /></span><b>Burada</b><small>Mağazada keyifle tüket</small></button>
+        <button onClick={() => onContinue('package')}><span><ShoppingBag /></span><b>Paket</b><small>Yanında götür</small></button>
+      </div>
+    </section>
+  </main>;
 }
 
 function ProductCard({ product, quantity, onClick }: { product: Product; quantity: number; onClick: () => void }) {
@@ -78,7 +86,7 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   const [stepId, step] = current;
   return <div className="modal-backdrop"><section className="customizer page-enter" role="dialog" aria-modal="true">
     <header><button className="icon-button" onClick={onClose}><X /></button><div><small>KAHVENİ HAZIRLA</small><h2>{product.name}</h2></div><b>{money(unitPrice)}</b></header>
-    <div className="customizer__hero"><span className="customizer__emoji">{product.emoji || '☕'}</span><div><span>MAGIC COFFEE</span><b>{step.title}</b></div></div>
+    <div className="customizer__hero">{product.image ? <img src={product.image} alt="" /> : <span className="customizer__emoji">{product.emoji || '☕'}</span>}<div><span>MAGIC COFFEE</span><b>{step.title}</b></div></div>
     <nav className="steps">{steps.map(([id, item], stepIndex) => <button key={id} className={stepIndex === index ? 'active' : ''} onClick={() => setIndex(stepIndex)}><i>{stepIndex + 1}</i>{item.title}</button>)}</nav>
     <div className="customizer__content"><div className="customizer__title"><span><small>SEÇİM</small><h3>{step.title}</h3></span><p>{step.required ? 'Bu adım zorunludur.' : 'İstersen bu adımı boş bırakabilirsin.'}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled).map((option) => {
@@ -93,8 +101,8 @@ function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }:
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   return <div className="modal-backdrop modal-backdrop--drawer" onMouseDown={onClose}><section className="cart-drawer page-enter" onMouseDown={(event) => event.stopPropagation()}>
     <header><span><ShoppingBag /></span><div><h2>Sepetim</h2><small>{cart.length} satır ürün</small></div><button className="icon-button" onClick={onClose}><X /></button></header>
-    <div className="cart-drawer__items">{!cart.length && <div className="empty-cart"><ShoppingBag /><h3>Sepetiniz henüz boş</h3><p>Magic Coffee menüsünden bir ürün seçerek başlayın.</p></div>}{cart.map((line) => <article className="cart-line" key={line.key}><div className="cart-line__image"><span>{line.product.emoji || '☕'}</span></div><div className="cart-line__main"><small>MAGIC COFFEE</small><h3>{line.product.name}</h3><p>{Object.values(line.selection?.choices ?? {}).flat().length ? 'Özelleştirildi' : 'Standart'}</p><div><button onClick={() => onQuantity(line.key, -1)}><Minus /></button><b>{line.quantity}</b><button className="plus" onClick={() => onQuantity(line.key, 1)}><Plus /></button>{line.product.customizable && <button className="edit" onClick={() => onEdit(line)}>Düzenle</button>}<button className="delete" onClick={() => onDelete(line.key)}><Trash2 /> Sil</button></div></div><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div>
-    <footer><div><small>SİPARİŞ TOPLAMI</small><b>{money(total)}</b></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>Ödemeye Geç <ArrowRight /></button></footer>
+    <div className="cart-drawer__items">{!cart.length && <div className="empty-cart"><ShoppingBag /><h3>Sepetiniz henüz boş</h3><p>Magic Coffee menüsünden bir ürün seçerek başlayın.</p></div>}{cart.map((line) => <article className="cart-line" key={line.key}><div className="cart-line__image">{line.product.image ? <img src={line.product.image} alt="" /> : <span>{line.product.emoji || '☕'}</span>}</div><div className="cart-line__main"><small>MAGIC COFFEE</small><h3>{line.product.name}</h3><p>{Object.values(line.selection?.choices ?? {}).flat().length ? 'Özelleştirildi' : 'Standart'}</p><div><button onClick={() => onQuantity(line.key, -1)}><Minus /></button><b>{line.quantity}</b><button className="plus" onClick={() => onQuantity(line.key, 1)}><Plus /></button>{line.product.customizable && <button className="edit" onClick={() => onEdit(line)}>Düzenle</button>}<button className="delete" onClick={() => onDelete(line.key)}><Trash2 /> Sil</button></div></div><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div>
+    <footer><div><small>SİPARİŞ TOPLAMI</small><b>{money(total)}</b><span>{cart.reduce((sum, line) => sum + line.quantity, 0)} ürün</span></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>Ödemeye Geç <ArrowRight /></button></footer>
   </section></div>;
 }
 
@@ -102,8 +110,9 @@ function Payment({ cart, fulfillment, onBack, onSuccess }: { cart: CartLine[]; f
   const [method, setMethod] = useState<'card' | 'meal-card' | null>(null);
   const [error, setError] = useState('');
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const complete = async () => { if (!method) return; try { const order = await submitOrder({ fulfillment, paymentMethod: method, total, lines: cart }); onSuccess(order.number); } catch (err) { setError(err instanceof Error ? err.message : 'Sipariş kaydedilemedi.'); } };
-  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack}><ArrowLeft /></button><div><h1>Ödeme Yöntemi</h1><p>Ödeme tipini seç ve siparişini tamamla.</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} onClick={() => setMethod('card')}><span><CreditCard /></span><b>Kredi / Banka Kartı</b><small>Temassız veya çipli ödeme</small></button><button className={method === 'meal-card' ? 'selected' : ''} onClick={() => setMethod('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>Yemek Kartı</b><small>Kurumsal kartlar</small></button></div>{error && <div className="payment__error">{error}</div>}</section><aside className="payment__summary"><div className="amount"><small>ÖDENECEK TUTAR</small><b>{money(total)}</b></div><div className="summary-card"><button className="primary-button" disabled={!method} onClick={complete}>Siparişi Tamamla <ArrowRight /></button></div></aside></main>;
+  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack}><ArrowLeft /></button><div><h1>Ödeme Yöntemi</h1><p>Lütfen ödemeyi nasıl yapmak istediğinizi seçin.</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} onClick={() => setMethod('card')}><span><CreditCard /></span><b>Kredi / Banka Kartı</b><small>Temassız veya çipli ödeme</small></button><button className={method === 'meal-card' ? 'selected' : ''} onClick={() => setMethod('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>Yemek Kartı</b><small>Sodexo, Ticket, Multinet vb.</small></button></div>{error && <div className="payment__error">{error}</div>}</section><aside className="payment__summary"><div className="amount"><small>ÖDENECEK TUTAR</small><b>{money(total)}</b></div><div className="summary-card"><header><b>Sipariş Özeti</b><span>{itemCount} ürün</span></header><div className="summary-card__lines">{cart.map((line) => <div key={line.key}><span><b>{line.product.name}</b><small>{line.quantity} adet</small></span><strong>{money(line.unitPrice * line.quantity)}</strong></div>)}</div><div className="summary-total"><span>Toplam</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? 'Burada' : 'Paket'}</p><button className="primary-button" disabled={!method} onClick={complete}>Siparişi Tamamla <ArrowRight /></button></div></aside></main>;
 }
 
 function Success({ orderNumber, onRestart }: { orderNumber: string; onRestart: () => void }) {
