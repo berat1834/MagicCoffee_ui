@@ -650,12 +650,12 @@ html.portrait-kiosk .summary-card__lines {
 
 html.portrait-kiosk .success {
   justify-content: flex-start;
-  padding-top: 70px;
+  padding: 44px 18px 18px;
   background: #fbf5ef;
 }
 
 html.portrait-kiosk .success > .brand-mark {
-  padding: 26px 42px;
+  padding: 22px 38px;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: white;
@@ -663,19 +663,38 @@ html.portrait-kiosk .success > .brand-mark {
 }
 
 html.portrait-kiosk .success__check {
-  width: 120px;
-  height: 120px;
-  margin: 54px 0 28px;
+  width: 104px;
+  height: 104px;
+  margin: 40px 0 20px;
+}
+
+html.portrait-kiosk .success__check svg {
+  width: 58px;
+  height: 58px;
 }
 
 html.portrait-kiosk .success h1 {
-  font-size: 54px;
+  font-size: 48px;
   line-height: .95;
 }
 
 html.portrait-kiosk .success h2 {
-  margin-top: 18px;
-  font-size: 13px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+html.portrait-kiosk .success > div {
+  margin: 28px 0 24px;
+  padding: 18px 40px;
+}
+
+html.portrait-kiosk .success > div b {
+  font-size: 39px;
+}
+
+html.portrait-kiosk .success > .primary-button {
+  min-width: 210px;
+  min-height: 46px;
 }
 
 html.portrait-kiosk .brand-mark__star {
