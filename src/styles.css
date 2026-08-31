@@ -678,3 +678,239 @@ html.portrait-kiosk .success h2 {
   font-size: 13px;
 }
 
+html.portrait-kiosk .brand-mark__star {
+  width: 42px;
+  height: 42px;
+}
+
+html.portrait-kiosk .brand-mark__copy b {
+  font-size: 22px;
+}
+
+html.portrait-kiosk .brand-mark__copy em {
+  font-size: 10px;
+}
+
+html.portrait-kiosk .product-card {
+  min-height: 136px;
+}
+
+html.portrait-kiosk .product-card__visual {
+  height: 80px;
+}
+
+html.portrait-kiosk .product-card__body h3 {
+  height: 18px;
+  font-size: 6.6px;
+}
+
+html.portrait-kiosk .product-card__body > b {
+  font-size: 9.2px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+html.portrait-kiosk .cart-drawer {
+  height: 370px;
+  min-height: 0;
+  max-height: calc(var(--kiosk-height) - 120px);
+}
+
+html.portrait-kiosk .cart-drawer > header {
+  min-height: 58px;
+  padding: 8px 14px;
+}
+
+html.portrait-kiosk .cart-drawer__items {
+  min-height: 0;
+  padding: 12px;
+}
+
+html.portrait-kiosk .cart-line {
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 9px;
+  margin-bottom: 8px;
+  padding: 9px;
+  border-radius: 14px;
+}
+
+html.portrait-kiosk .cart-line__image {
+  width: 64px;
+  height: 64px;
+}
+
+html.portrait-kiosk .cart-line__main > small {
+  font-size: 5px;
+}
+
+html.portrait-kiosk .cart-line__main h3 {
+  font-size: 10px;
+}
+
+html.portrait-kiosk .cart-line__main p {
+  font-size: 6px;
+}
+
+html.portrait-kiosk .cart-line__main > div {
+  gap: 4px;
+}
+
+html.portrait-kiosk .cart-line__main > div button {
+  height: 24px;
+  min-width: 24px;
+  border-radius: 8px;
+  font-size: 6px;
+}
+
+html.portrait-kiosk .cart-line__main > div button.edit,
+html.portrait-kiosk .cart-line__main > div button.delete {
+  padding-inline: 7px;
+}
+
+html.portrait-kiosk .cart-line > strong {
+  font-size: 10px;
+}
+
+html.portrait-kiosk .cart-drawer > footer {
+  min-height: 64px;
+  grid-template-columns: .95fr 1.2fr;
+  gap: 10px;
+  padding: 8px 14px;
+}
+
+html.portrait-kiosk .cart-drawer > footer b {
+  font-size: 17px;
+}
+
+html.portrait-kiosk .cart-drawer > footer .primary-button {
+  min-height: 48px;
+  font-size: 13px;
+  border-radius: 14px;
+}
+
+html.portrait-kiosk .customizer {
+  height: auto;
+  max-height: calc(var(--kiosk-height) - 28px);
+  border-radius: 22px;
+}
+
+html.portrait-kiosk .customizer > header {
+  min-height: 60px;
+}
+
+html.portrait-kiosk .customizer__hero {
+  height: 100px;
+}
+
+html.portrait-kiosk .customizer__hero img {
+  width: 190px;
+  height: 122px;
+}
+
+html.portrait-kiosk .steps {
+  height: 46px;
+}
+
+html.portrait-kiosk .steps button {
+  font-size: 7px;
+}
+
+html.portrait-kiosk .customizer__content {
+  min-height: 180px;
+  padding: 12px;
+}
+
+html.portrait-kiosk .option-list button {
+  min-height: 58px;
+  border-radius: 13px;
+}
+
+html.portrait-kiosk .customizer > footer {
+  min-height: 58px;
+  padding: 8px 12px;
+}
+
+html.portrait-kiosk .primary-button,
+html.portrait-kiosk .secondary-button {
+  min-height: 44px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+
+html.portrait-kiosk .payment {
+  gap: 12px;
+  padding: 22px 12px 18px;
+  overflow: hidden;
+}
+
+html.portrait-kiosk .payment__methods > header {
+  min-height: 48px;
+  margin-bottom: 12px;
+}
+
+html.portrait-kiosk .payment h1 {
+  font-size: 27px;
+}
+
+html.portrait-kiosk .payment-options {
+  gap: 12px;
+}
+
+html.portrait-kiosk .payment-options button {
+  min-height: 136px;
+  border-radius: 16px;
+}
+
+html.portrait-kiosk .payment-options button > span {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 10px;
+  border-radius: 17px;
+}
+
+html.portrait-kiosk .payment-options button svg {
+  width: 28px;
+  height: 28px;
+}
+
+html.portrait-kiosk .payment-options button b {
+  font-size: 12px;
+}
+
+html.portrait-kiosk .amount {
+  padding: 22px 18px;
+  border-radius: 22px;
+}
+
+html.portrait-kiosk .amount b {
+  font-size: 38px;
+}
+
+html.portrait-kiosk .summary-card {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 19px;
+}
+
+html.portrait-kiosk .summary-card__lines {
+  max-height: 116px;
+  margin: 10px 0;
+}
+
+html.portrait-kiosk .summary-card__lines > div {
+  min-height: 38px;
+  margin-bottom: 5px;
+}
+
+html.portrait-kiosk .summary-total {
+  padding: 10px 0;
+}
+
+html.portrait-kiosk .order-type-mini {
+  margin: 8px 0;
+}
+
+html.portrait-kiosk .summary-card > .primary-button {
+  min-height: 46px;
+}
+

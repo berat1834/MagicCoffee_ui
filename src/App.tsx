@@ -131,7 +131,8 @@ export default function App() {
   const [orderNumber, setOrderNumber] = useState('');
   const loadCatalog = () => { setCatalogError(''); fetchCatalog().then(setCatalog).catch((error: Error) => setCatalogError(error.message)); };
   useEffect(loadCatalog, []);
-  const addProduct = (product: Product) => { if (product.available === false) return; if (product.customizable) { setEditing(null); setCustomizing(product); return; } setCart((items) => [...items, { key: `${product.id}-${Date.now()}`, product, quantity: 1, unitPrice: product.price }]); };
+  const hasActiveCustomization = (product: Product) => Object.values(product.customization ?? {}).some((step) => step.enabled);
+  const addProduct = (product: Product) => { if (product.available === false) return; if (product.customizable && hasActiveCustomization(product)) { setEditing(null); setCustomizing(product); return; } setCart((items) => [...items, { key: `${product.id}-${Date.now()}`, product, quantity: 1, unitPrice: product.price }]); };
   const saveCustomized = (selection: Selection, unitPrice: number) => { if (!customizing) return; const line = { key: `${customizing.id}-${JSON.stringify(selection)}-${Date.now()}`, product: customizing, quantity: 1, unitPrice, selection }; setCart((items) => editing ? items.map((item) => item.key === editing.key ? { ...item, selection, unitPrice } : item) : [...items, line]); setCustomizing(null); setEditing(null); };
   const updateQuantity = (key: string, delta: number) => setCart((items) => items.map((line) => line.key === key ? { ...line, quantity: line.quantity + delta } : line).filter((line) => line.quantity > 0));
   const restart = () => { setCart([]); setOrderNumber(''); setCartOpen(false); setScreen('intro'); loadCatalog(); };
