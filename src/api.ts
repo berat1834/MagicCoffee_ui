@@ -28,7 +28,9 @@ export async function submitOrder(args: {
       })),
     }),
   });
-  if (!response.ok) throw new Error('Sipariş kaydedilemedi. Lütfen tekrar deneyin.');
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || 'Sipariş kaydedilemedi. Lütfen tekrar deneyin.');
+  }
   return response.json() as Promise<{ number: string }>;
 }
-
