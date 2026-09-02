@@ -23,13 +23,13 @@ function BrandMark({ light = false, compact = false }: { light?: boolean; compac
   </div>;
 }
 
-function Intro({ onStart }: { onStart: () => void }) {
+function Intro({ onStart, loading }: { onStart: () => void; loading: boolean }) {
   return <button type="button" className="intro" onClick={onStart} aria-label="Sipariş vermeye başla">
     <div className="intro__grain" />
     <header className="intro__header"><BrandMark light /></header>
     <img className="intro__burger intro__coffee-art" src="/images/products/cappuccino.png" alt="Magic Coffee Cappuccino" />
     <div className="intro__copy"><p>YENİ KAHVE MOLAN</p><h1>Kahveni<br /><i>Magic</i> hazırla</h1><span>Boyutunu, sütünü ve şurubunu seç.</span></div>
-    <div className="intro__touch"><span>Sipariş vermek için dokun</span><ArrowRight /></div>
+    <div className="intro__touch"><span>{loading ? 'Menu hazirlaniyor...' : 'Siparis vermek icin dokun'}</span><ArrowRight /></div>
   </button>;
 }
 
@@ -165,13 +165,34 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [notice, setNotice] = useState('');
-  const loadCatalog = () => { setCatalogError(''); fetchCatalog().then(setCatalog).catch((error: Error) => setCatalogError(error.message)); };
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [startPending, setStartPending] = useState(false);
+  const loadCatalog = () => {
+    setCatalogError('');
+    setCatalogLoading(true);
+    fetchCatalog().then(setCatalog).catch((error: Error) => setCatalogError(error.message)).finally(() => setCatalogLoading(false));
+  };
   useEffect(loadCatalog, []);
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(''), 3000);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+  useEffect(() => {
+    if (startPending && catalog) {
+      setStartPending(false);
+      setScreen('order-type');
+    }
+  }, [catalog, startPending]);
+  const startOrder = () => {
+    if (catalog) {
+      setScreen('order-type');
+      return;
+    }
+    setNotice('Menu hazirlaniyor, lutfen bekleyin.');
+    setStartPending(true);
+    if (!catalogLoading) loadCatalog();
+  };
   const addProduct = (product: Product) => {
     if (product.available === false) return;
     if (product.stockTrackingEnabled && product.stockQuantity != null && productCartQuantity(cart, product.id) >= product.stockQuantity) {
@@ -219,14 +240,14 @@ export default function App() {
   });
   const restart = () => { setCart([]); setOrderNumber(''); setCartOpen(false); setNotice(''); setScreen('intro'); loadCatalog(); };
   return <div className="app-shell kiosk-no-focus-ring">
-    {screen === 'intro' && <Intro onStart={() => catalog && setScreen('order-type')} />}
+    {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading || !catalog} />}
     {screen === 'order-type' && <OrderType onContinue={(type) => { setFulfillment(type); setScreen('catalog'); }} />}
     {notice && <div className="stock-toast">{notice}</div>}
     {screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onCart={() => setCartOpen(true)} />}
     {screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => setScreen('catalog')} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
     {screen === 'success' && <Success orderNumber={orderNumber} onRestart={restart} />}
     {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>Menüye ulaşamadık</h2><p>Magic Coffee API çalışıyor mu kontrol edip yeniden deneyin.</p><button className="primary-button" onClick={loadCatalog}>Tekrar Dene</button></div>}
-    {!catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>Kahve menüsü hazırlanıyor...</p></div>}
+    {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>Kahve menüsü hazırlanıyor...</p></div>}
     {customizing && <Customizer product={customizing} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
     {cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(false); }} onCheckout={() => { setCartOpen(false); setScreen('payment'); }} />}
   </div>;

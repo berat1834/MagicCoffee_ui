@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MagicCoffee</string>
+    <string name="title_activity_main">MagicCoffee</string>
+    <string name="package_name">com.magiccoffee.kiosk</string>
+    <string name="custom_url_scheme">com.magiccoffee.kiosk</string>
+</resources>
