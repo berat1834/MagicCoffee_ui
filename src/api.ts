@@ -1,6 +1,6 @@
 import type { CartLine, Catalog, Fulfillment } from './types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://magiccoffee-api.onrender.com').replace(/\/$/, '');
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 export function assetUrl(path?: string) {
