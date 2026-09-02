@@ -5,6 +5,47 @@ import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
 
+function usePress(action: () => void) {
+  const lastPress = useRef(0);
+  const startPoint = useRef<{ x: number; y: number } | null>(null);
+  const readTouch = (event: { changedTouches: { item: (index: number) => { clientX: number; clientY: number } | null } }) => {
+    const touch = event.changedTouches.item(0);
+    return touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
+  const run = () => {
+    const now = Date.now();
+    if (now - lastPress.current < 300) return;
+    lastPress.current = now;
+    action();
+  };
+  return {
+    onPointerDown: (event: { clientX: number; clientY: number }) => {
+      startPoint.current = { x: event.clientX, y: event.clientY };
+    },
+    onPointerUp: (event: { clientX: number; clientY: number; preventDefault: () => void }) => {
+      const start = startPoint.current;
+      startPoint.current = null;
+      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) return;
+      event.preventDefault();
+      run();
+    },
+    onTouchStart: (event: { changedTouches: { item: (index: number) => { clientX: number; clientY: number } | null } }) => {
+      startPoint.current = readTouch(event);
+    },
+    onTouchEnd: (event: { changedTouches: { item: (index: number) => { clientX: number; clientY: number } | null }; preventDefault: () => void }) => {
+      const end = readTouch(event);
+      const start = startPoint.current;
+      startPoint.current = null;
+      if (start && end && Math.hypot(end.x - start.x, end.y - start.y) > 12) return;
+      event.preventDefault();
+      run();
+    },
+    onClick: () => {
+      run();
+    },
+  };
+}
+
 function productCartQuantity(cart: CartLine[], productId: string) {
   return cart.filter((line) => line.product.id === productId).reduce((sum, line) => sum + line.quantity, 0);
 }
@@ -52,7 +93,7 @@ function OrderType({ onContinue }: { onContinue: (type: Fulfillment) => void }) 
 
 function ProductCard({ product, quantity, onClick }: { product: Product; quantity: number; onClick: () => void }) {
   const disabled = product.available === false;
-  return <button type="button" className={`product-card ${disabled ? 'product-card--disabled' : ''}`} onClick={onClick} disabled={disabled}>
+  return <button type="button" className={`product-card ${disabled ? 'product-card--disabled' : ''}`} data-product-id={product.id} data-clickable="product" disabled={disabled}>
     {product.popular && <span className="product-card__popular">ÇOK SEVİLEN</span>}{quantity > 0 && <span className="product-card__quantity">{quantity}</span>}
     <div className={`product-card__visual ${product.image ? '' : 'product-card__visual--emoji'}`}>{product.image ? <img src={assetUrl(product.image)} alt={product.name} /> : <span>{product.emoji || '☕'}</span>}</div>
     <div className="product-card__body"><small>{disabled ? product.unavailableReason : product.categoryId}</small><h3>{product.name}</h3><p>{product.description}</p><b>{money(product.price)}</b></div>
@@ -66,14 +107,48 @@ function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog;
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const selectCategory = (categoryId: string) => { setActiveCategory(categoryId); productsRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); };
+  useEffect(() => {
+    let lastHandled = 0;
+    const handleNativePress = (event: Event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      const now = Date.now();
+      if (now - lastHandled < 450) return;
+
+      const productButton = target.closest<HTMLButtonElement>('.product-card');
+      if (productButton && !productButton.disabled) {
+        const product = catalog.products.find((item) => item.id === productButton.dataset.productId);
+        if (!product) return;
+        lastHandled = now;
+        if (event.cancelable) event.preventDefault();
+        onProduct(product);
+        return;
+      }
+
+      if (target.closest('.header-cart, .cart-bar')) {
+        lastHandled = now;
+        if (event.cancelable) event.preventDefault();
+        onCart();
+      }
+    };
+
+    document.addEventListener('touchend', handleNativePress, { capture: true, passive: false });
+    document.addEventListener('pointerup', handleNativePress, { capture: true });
+    document.addEventListener('click', handleNativePress, { capture: true });
+    return () => {
+      document.removeEventListener('touchend', handleNativePress, { capture: true });
+      document.removeEventListener('pointerup', handleNativePress, { capture: true });
+      document.removeEventListener('click', handleNativePress, { capture: true });
+    };
+  }, [catalog.products, onCart, onProduct]);
   return <main className="catalog page-enter">
-    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" onClick={onCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>Sepetim</b><small>{itemCount ? money(total) : 'Sepetiniz boş'}</small></span></button></header>
+    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart"><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>Sepetim</b><small>{itemCount ? money(total) : 'Sepetiniz boş'}</small></span></button></header>
     <div className="category-menu"><div className="category-menu__label"><small>MENÜ</small><b>Kategorini seç</b></div><nav className="categories" aria-label="Ürün kategorileri"><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>Tümü</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav></div>
     <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
       return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} ürün</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;
     })}</section>
-    <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} onClick={onCart}><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>Sepete Git</b><strong>{money(total)}</strong></> : <span>Seçtikleriniz burada görünecek</span>}</button>
+    <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart"><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>Sepete Git</b><strong>{money(total)}</strong></> : <span>Seçtikleriniz burada görünecek</span>}</button>
   </main>;
 }
 

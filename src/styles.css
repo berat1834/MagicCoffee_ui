@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; margin: 0; }
 body { min-width: 320px; overflow-x: hidden; }
-button { font: inherit; }
+button { font: inherit; touch-action: manipulation; }
 button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 button:focus-visible { outline: 3px solid #f4b233; outline-offset: 3px; }
 .kiosk-no-focus-ring button:active { transform: scale(.98); }
@@ -618,6 +618,12 @@ html.portrait-kiosk .cart-bar {
 }
 
 html.portrait-kiosk .modal-backdrop--drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
   background: rgba(31, 13, 8, .58);
   backdrop-filter: blur(5px);
 }
@@ -1168,4 +1174,3 @@ html.portrait-kiosk .order-type-mini {
 html.portrait-kiosk .summary-card > .primary-button {
   min-height: 46px;
 }
-
