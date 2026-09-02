@@ -1,7 +1,10 @@
 import type { CartLine, Catalog, Fulfillment } from './types';
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
+
 export async function fetchCatalog(): Promise<Catalog> {
-  const response = await fetch('/api/catalog');
+  const response = await fetch(apiUrl('/api/catalog'));
   if (!response.ok) throw new Error('Menü şu anda yüklenemiyor.');
   return response.json() as Promise<Catalog>;
 }
@@ -12,7 +15,7 @@ export async function submitOrder(args: {
   total: number;
   lines: CartLine[];
 }): Promise<{ number: string }> {
-  const response = await fetch('/api/orders', {
+  const response = await fetch(apiUrl('/api/orders'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
