@@ -5,6 +5,18 @@ import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
 
+function productCartQuantity(cart: CartLine[], productId: string) {
+  return cart.filter((line) => line.product.id === productId).reduce((sum, line) => sum + line.quantity, 0);
+}
+
+function addToCartNotice(product: Product, nextCartQuantity: number) {
+  if (!product.stockTrackingEnabled || product.stockQuantity == null) return `${product.name} sepete eklendi.`;
+  const remaining = product.stockQuantity - nextCartQuantity;
+  if (remaining <= 0) return `${product.name} sepete eklendi. Stokta kalmadı.`;
+  if (remaining === 1) return `${product.name} sepete eklendi. Son 1 ürün kaldı.`;
+  return `${product.name} sepete eklendi. Kalan stok: ${remaining}.`;
+}
+
 function BrandMark({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
   return <div className={`brand-mark ${light ? 'brand-mark--light' : ''} ${compact ? 'brand-mark--compact' : ''}`}>
     <span className="brand-mark__star"><Coffee /></span><span className="brand-mark__copy"><b>MAGIC</b><em>COFFEE</em></span>
@@ -152,12 +164,35 @@ export default function App() {
   const [editing, setEditing] = useState<CartLine | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [notice, setNotice] = useState('');
   const loadCatalog = () => { setCatalogError(''); fetchCatalog().then(setCatalog).catch((error: Error) => setCatalogError(error.message)); };
   useEffect(loadCatalog, []);
-  const addProduct = (product: Product) => { if (product.available === false) return; if (product.customizable && hasActiveCustomization(product)) { setEditing(null); setCustomizing(product); return; } const key = cartLineKey(product); setCart((items) => items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1 } : line) : [...items, { key, product, quantity: 1, unitPrice: product.price }]); };
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(''), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+  const addProduct = (product: Product) => {
+    if (product.available === false) return;
+    if (product.stockTrackingEnabled && product.stockQuantity != null && productCartQuantity(cart, product.id) >= product.stockQuantity) {
+      setNotice(`${product.name} stokta kalmadı.`);
+      return;
+    }
+    if (product.customizable && hasActiveCustomization(product)) { setEditing(null); setCustomizing(product); return; }
+    const key = cartLineKey(product);
+    const nextQuantity = productCartQuantity(cart, product.id) + 1;
+    setCart((items) => items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1 } : line) : [...items, { key, product, quantity: 1, unitPrice: product.price }]);
+    setNotice(addToCartNotice(product, nextQuantity));
+  };
   const saveCustomized = (selection: Selection, unitPrice: number) => {
     if (!customizing) return;
+    if (!editing && customizing.stockTrackingEnabled && customizing.stockQuantity != null && productCartQuantity(cart, customizing.id) >= customizing.stockQuantity) {
+      setNotice(`${customizing.name} stokta kalmadı.`);
+      setCustomizing(null);
+      return;
+    }
     const key = cartLineKey(customizing, selection);
+    const nextQuantity = editing ? productCartQuantity(cart, customizing.id) : productCartQuantity(cart, customizing.id) + 1;
     setCart((items) => {
       if (!editing) {
         return items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1, unitPrice } : line) : [...items, { key, product: customizing, quantity: 1, unitPrice, selection }];
@@ -167,14 +202,26 @@ export default function App() {
         ? withoutEdited.map((line) => line.key === key ? { ...line, quantity: line.quantity + editing.quantity, unitPrice } : line)
         : [...withoutEdited, { key, product: customizing, quantity: editing.quantity, unitPrice, selection }];
     });
+    setNotice(addToCartNotice(customizing, nextQuantity));
     setCustomizing(null);
     setEditing(null);
   };
-  const updateQuantity = (key: string, delta: number) => setCart((items) => items.map((line) => line.key === key ? { ...line, quantity: line.quantity + delta } : line).filter((line) => line.quantity > 0));
-  const restart = () => { setCart([]); setOrderNumber(''); setCartOpen(false); setScreen('intro'); loadCatalog(); };
+  const updateQuantity = (key: string, delta: number) => setCart((items) => {
+    const target = items.find((line) => line.key === key);
+    if (!target) return items;
+    if (delta > 0 && target.product.stockTrackingEnabled && target.product.stockQuantity != null && productCartQuantity(items, target.product.id) >= target.product.stockQuantity) {
+      setNotice(`${target.product.name} stokta kalmadı.`);
+      return items;
+    }
+    const nextItems = items.map((line) => line.key === key ? { ...line, quantity: line.quantity + delta } : line).filter((line) => line.quantity > 0);
+    if (delta > 0) setNotice(addToCartNotice(target.product, productCartQuantity(nextItems, target.product.id)));
+    return nextItems;
+  });
+  const restart = () => { setCart([]); setOrderNumber(''); setCartOpen(false); setNotice(''); setScreen('intro'); loadCatalog(); };
   return <div className="app-shell kiosk-no-focus-ring">
     {screen === 'intro' && <Intro onStart={() => catalog && setScreen('order-type')} />}
     {screen === 'order-type' && <OrderType onContinue={(type) => { setFulfillment(type); setScreen('catalog'); }} />}
+    {notice && <div className="stock-toast">{notice}</div>}
     {screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onCart={() => setCartOpen(true)} />}
     {screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => setScreen('catalog')} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
     {screen === 'success' && <Success orderNumber={orderNumber} onRestart={restart} />}

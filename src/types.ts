@@ -40,6 +40,8 @@ export type Product = {
   popular?: boolean;
   available?: boolean;
   unavailableReason?: string | null;
+  stockQuantity?: number | null;
+  stockTrackingEnabled?: boolean;
   customization?: Record<string, CustomizationStep>;
 };
 

@@ -151,6 +151,7 @@ html.portrait-kiosk .payment {
 .product-card__body h3 { height: 19px; overflow: hidden; margin: 0; font-size: 7px; line-height: 1.3; font-weight: 900; letter-spacing: -.01em; }
 .product-card__body p { display: none; }
 .product-card__body > b { display: block; margin: 5px -6px -7px; padding: 5px 4px 6px; border-top: 1px solid #f1e6df; color: var(--red); font-size: 10px; }
+.stock-toast { position: fixed; z-index: 90; left: 16px; right: 16px; bottom: 66px; min-height: 38px; padding: 10px 14px; border: 1px solid #f1c9be; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #8b1424; background: #ffe7e1; box-shadow: 0 10px 24px rgba(72, 30, 17, .14); text-align: center; font-size: 11px; font-weight: 900; }
 .cart-bar { position: absolute; z-index: 25; left: 0; right: 0; bottom: 0; height: 58px; border: 0; border-radius: 15px 15px 0 0; padding: 0 20px; display: flex; justify-content: center; align-items: center; gap: 13px; color: white; background: linear-gradient(135deg, var(--coffee), #8c5a35); box-shadow: 0 -7px 22px rgba(58,30,18,.22); font-size: 11px; font-weight: 800; }
 .cart-bar--ready { justify-content: flex-start; }
 .cart-bar__icon { width: 36px; height: 36px; position: relative; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,.15); }
