@@ -3,6 +3,13 @@ import type { CartLine, Catalog, Fulfillment } from './types';
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
+export function assetUrl(path?: string) {
+  if (!path) return '';
+  if (/^https?:\/\//.test(path)) return path;
+  if (path.startsWith('/uploads/')) return apiUrl(path);
+  return path;
+}
+
 export async function fetchCatalog(): Promise<Catalog> {
   const response = await fetch(apiUrl('/api/catalog'));
   if (!response.ok) throw new Error('Menü şu anda yüklenemiyor.');
