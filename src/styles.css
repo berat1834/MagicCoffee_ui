@@ -414,8 +414,9 @@ html.portrait-kiosk .intro::after {
 html.portrait-kiosk .intro__header {
   position: absolute;
   z-index: 4;
-  left: 36px;
-  top: 136px;
+  left: 50%;
+  top: 34px;
+  transform: translateX(-50%);
   padding: 0;
 }
 
@@ -847,7 +848,15 @@ html.portrait-kiosk .cart-line__main > div button {
   height: 22px;
   min-width: 22px;
   border-radius: 8px;
+  align-items: center;
+  justify-items: center;
   font-size: 6px;
+  line-height: 1;
+}
+
+html.portrait-kiosk .cart-line__main > div button:not(.edit):not(.delete) svg {
+  display: block;
+  transform: translateY(-1px);
 }
 
 html.portrait-kiosk .cart-line__main > div button.edit,
