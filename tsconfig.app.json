@@ -14,7 +14,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "jsxImportSource": "@magiccoffee/i18n-runtime",
+    "baseUrl": ".",
+    "paths": {
+      "@magiccoffee/i18n-runtime/*": ["src/i18n/runtime/*"]
+    }
   },
   "include": ["src"]
 }

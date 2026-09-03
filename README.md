@@ -35,3 +35,12 @@ npm run build
 5. Sepet
 6. Ödeme
 7. Başarı ekranı
+
+Kiosk, canlı API üzerinden Pavo Cloud ödeme durumunu izler ve başarılı siparişi yalnızca bir kez kaydeder. Android sürümü MASUNG IP1000 USB fiş yazıcısını `UsbPrinter` Capacitor eklentisiyle kullanır; tarayıcıda donanım çağrısı güvenle atlanır.
+
+```powershell
+npm run build
+npx cap sync android
+cd android
+.\gradlew.bat assembleDebug
+```

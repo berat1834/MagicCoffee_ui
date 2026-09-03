@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { KioskLanguageProvider } from './i18n/KioskLanguage';
+import { setKioskRuntimeTranslationEnabled } from '@magiccoffee/i18n-runtime/languageState';
 import './styles.css';
 
 const KIOSK_LOGICAL_WIDTH = 430;
@@ -39,6 +41,7 @@ function clearKioskFocus() {
 }
 
 syncKioskViewport();
+setKioskRuntimeTranslationEnabled(true);
 window.addEventListener('resize', syncKioskViewport);
 window.addEventListener('orientationchange', syncKioskViewport);
 window.visualViewport?.addEventListener('resize', syncKioskViewport);
@@ -48,6 +51,8 @@ window.addEventListener('click', clearKioskFocus, true);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <KioskLanguageProvider>
+      <App />
+    </KioskLanguageProvider>
   </StrictMode>,
 );

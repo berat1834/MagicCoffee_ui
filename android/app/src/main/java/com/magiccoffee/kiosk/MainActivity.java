@@ -14,6 +14,7 @@ import android.webkit.WebView;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(UsbPrinterPlugin.class);
         super.onCreate(savedInstanceState);
         configureWindow();
         configureWebView();

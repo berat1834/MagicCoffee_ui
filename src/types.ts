@@ -47,6 +47,7 @@ export type Product = {
 
 export type Catalog = {
   brand: { name: string; currency: string; version: string };
+  language?: 'tr' | 'en';
   categories: Category[];
   products: Product[];
 };
