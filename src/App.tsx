@@ -65,7 +65,8 @@ function BrandMark({ light = false, compact = false }: { light?: boolean; compac
 }
 
 function Intro({ onStart, loading }: { onStart: () => void; loading: boolean }) {
-  return <button type="button" className="intro" onClick={onStart} aria-label="Sipariş vermeye başla">
+  const press = usePress(onStart);
+  return <button type="button" className="intro" {...press} aria-label="Sipariş vermeye başla">
     <div className="intro__grain" />
     <header className="intro__header"><BrandMark light /></header>
     <img className="intro__burger intro__coffee-art" src="/images/products/cappuccino.png" alt="Magic Coffee Cappuccino" />
@@ -260,6 +261,7 @@ export default function App() {
       setScreen('order-type');
       return;
     }
+    if (catalogError) loadCatalog();
     setNotice('Menu hazirlaniyor, lutfen bekleyin.');
     setStartPending(true);
     if (!catalogLoading) loadCatalog();
@@ -316,7 +318,7 @@ export default function App() {
   });
   const restart = () => { setCart([]); setOrderNumber(''); setPaymentError(''); setCartOpen(false); setNotice(''); setScreen('intro'); loadCatalog(); };
   return <div className="app-shell kiosk-no-focus-ring">
-    {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading || !catalog} />}
+    {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading} />}
     {screen === 'order-type' && <OrderType onContinue={(type) => { setFulfillment(type); setScreen('catalog'); }} />}
     {notice && <div className="stock-toast">{notice}</div>}
     {customizing && <Customizer product={customizing} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
