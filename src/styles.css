@@ -1922,21 +1922,21 @@ html.android-kiosk.portrait-kiosk .categories button {
 }
 
 html.android-kiosk.portrait-kiosk .categories {
-  gap: 34px !important;
-  column-gap: 34px !important;
+  gap: 18px !important;
+  column-gap: 18px !important;
   padding-top: 11px;
-  padding-right: 92px;
+  padding-right: 82px;
 }
 
 html.android-kiosk.portrait-kiosk .categories button {
-  flex-basis: 112px;
-  width: 112px;
-  min-width: 112px;
-  max-width: 112px;
+  flex-basis: 128px;
+  width: 128px;
+  min-width: 128px;
+  max-width: 128px;
   min-height: 52px;
-  padding: 7px 8px;
+  padding: 7px 9px;
   border-radius: 13px;
-  font-size: 9.8px;
+  font-size: 10px;
 }
 
 html.portrait-kiosk .header-cart,
@@ -1949,7 +1949,16 @@ html.android-kiosk.portrait-kiosk .header-cart {
 
 html.android-kiosk.portrait-kiosk .header-cart {
   grid-template-columns: 66px 1fr;
-  column-gap: 36px !important;
-  gap: 36px !important;
-  padding-left: 18px;
+  column-gap: 18px !important;
+  gap: 18px !important;
+  padding-left: 14px;
+}
+
+html.portrait-kiosk .catalog__header .brand-mark,
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark {
+  gap: 9px;
+}
+
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark {
+  gap: 14px;
 }
