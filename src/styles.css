@@ -1301,6 +1301,7 @@ html.android-kiosk.portrait-kiosk .cart-line__main h3 { margin: 8px 0; font-size
 html.android-kiosk.portrait-kiosk .cart-line__main p { margin-bottom: 16px; font-size: 18px; }
 html.android-kiosk.portrait-kiosk .cart-line__main > div { gap: 12px; flex-wrap: wrap; }
 html.android-kiosk.portrait-kiosk .cart-line__main > div button { height: 54px; min-width: 54px; border-radius: 18px; font-size: 17px; }
+html.android-kiosk.portrait-kiosk .cart-line__main > div button.plus { margin-right: 12px; }
 html.android-kiosk.portrait-kiosk .cart-line__main > div button.edit,
 html.android-kiosk.portrait-kiosk .cart-line__main > div button.delete { padding-inline: 18px; }
 html.android-kiosk.portrait-kiosk .cart-line__main > div svg { width: 24px; height: 24px; }
@@ -1368,6 +1369,12 @@ html.android-kiosk.portrait-kiosk .cart-drawer > footer .primary-button {
   min-height: 92px;
   border-radius: 24px;
   font-size: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .cart-drawer > footer span {
+  color: var(--coffee);
+  font-size: 20px;
+  font-weight: 900;
 }
 
 html.android-kiosk.portrait-kiosk .payment {
