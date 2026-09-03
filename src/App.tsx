@@ -163,12 +163,7 @@ function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog;
   </main>;
 }
 
-function limitSteps(steps: [string, CustomizationStep][], maxSteps = 3) {
-  if (steps.length <= maxSteps) return steps;
-  const required = steps.filter(([, step]) => step.required);
-  const optional = steps.filter(([, step]) => !step.required);
-  return [...required, ...optional].slice(0, maxSteps);
-}
+
 
 function hasActiveCustomization(product: Product) {
   return Object.values(product.customization ?? {}).some((step) => step.enabled && step.options.some((option) => option.enabled !== false));
@@ -185,7 +180,7 @@ function cartLineKey(product: Product, selection?: Selection) {
 }
 
 function Customizer({ product, initial, onClose, onSave }: { product: Product; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
-  const steps = limitSteps(Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled && step.options.some((option) => option.enabled !== false)));
+  const steps = Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled && step.options.some((option) => option.enabled !== false));
   const [choices, setChoices] = useState<Record<string, string[]>>(() => initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false).map((option) => option.id)])));
   const [index, setIndex] = useState(0);
   const [error, setError] = useState('');
