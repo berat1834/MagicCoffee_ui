@@ -1858,3 +1858,44 @@ html.android-kiosk.portrait-kiosk .product-card__visual img {
   object-fit: contain;
   background: linear-gradient(145deg, #f7dfbd, #fff2dc);
 }
+
+/* Final Android kiosk scale tuning */
+html.android-kiosk.portrait-kiosk .intro__coffee-art {
+  width: min(1180px, 112%);
+  height: auto;
+  max-height: 1120px;
+  top: 50%;
+  left: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+}
+
+html.android-kiosk.portrait-kiosk .intro__copy {
+  bottom: 372px;
+}
+
+html.android-kiosk.portrait-kiosk .category-menu__label small {
+  font-size: 15px;
+  letter-spacing: .16em;
+}
+
+html.android-kiosk.portrait-kiosk .category-menu__label b {
+  margin-top: 5px;
+  font-size: 18px;
+}
+
+html.android-kiosk.portrait-kiosk .categories {
+  gap: 18px;
+  padding-top: 10px;
+  padding-right: 72px;
+}
+
+html.android-kiosk.portrait-kiosk .categories button {
+  min-width: 154px;
+  min-height: 62px;
+  padding: 8px 13px;
+  border-radius: 15px;
+  font-size: 12.5px;
+  line-height: 1.12;
+}
