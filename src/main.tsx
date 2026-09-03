@@ -7,6 +7,11 @@ const KIOSK_LOGICAL_WIDTH = 430;
 
 function syncKioskViewport() {
   const root = document.documentElement;
+  const viewportHeight = Math.floor(Math.min(
+    window.innerHeight,
+    window.visualViewport?.height ?? window.innerHeight,
+    root.clientHeight || window.innerHeight,
+  ));
   const isPortraitKiosk = window.innerHeight / window.innerWidth >= 1.45;
   const isAndroidKiosk = /Android/i.test(navigator.userAgent) || window.location.protocol === 'capacitor:';
 
@@ -20,12 +25,13 @@ function syncKioskViewport() {
 
   root.classList.add('portrait-kiosk');
   root.style.setProperty('--kiosk-width', `${Math.min(window.innerWidth, KIOSK_LOGICAL_WIDTH)}px`);
-  root.style.setProperty('--kiosk-height', `${window.innerHeight}px`);
+  root.style.setProperty('--kiosk-height', `${viewportHeight}px`);
 }
 
 syncKioskViewport();
 window.addEventListener('resize', syncKioskViewport);
 window.addEventListener('orientationchange', syncKioskViewport);
+window.visualViewport?.addEventListener('resize', syncKioskViewport);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
