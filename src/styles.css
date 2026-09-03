@@ -1296,3 +1296,36 @@ html.android-kiosk.portrait-kiosk .cart-drawer > footer { min-height: 132px; pad
 html.android-kiosk.portrait-kiosk .cart-drawer > footer small { font-size: 13px; }
 html.android-kiosk.portrait-kiosk .cart-drawer > footer b { font-size: 38px; }
 html.android-kiosk.portrait-kiosk .cart-drawer > footer span { font-size: 16px; }
+
+html.portrait-kiosk .utility-button { height: 54px; }
+html.portrait-kiosk .utility-button:first-child { width: 150px; }
+html.portrait-kiosk .utility-button:last-child { width: 116px; }
+html.portrait-kiosk .utility-button small { font-size: 8.5px; }
+html.portrait-kiosk .utility-button b { font-size: 12px; }
+html.portrait-kiosk .order-type h1 { font-size: 20px; }
+html.portrait-kiosk .order-type__content > p { font-size: 8px; }
+html.portrait-kiosk .order-type__grid button b { font-size: 18px; }
+html.portrait-kiosk .header-cart { height: 48px; min-width: 174px; }
+html.portrait-kiosk .header-cart b { font-size: 13px; }
+html.portrait-kiosk .header-cart small { font-size: 8px; }
+html.portrait-kiosk .cart-bar { font-size: 13px; }
+html.portrait-kiosk .cart-bar--ready b { font-size: 15px; }
+html.portrait-kiosk .cart-bar--ready strong { font-size: 21px; }
+
+html.android-kiosk.portrait-kiosk .utility-button { height: 116px; padding: 14px 20px; grid-template-columns: 70px 1fr; column-gap: 18px; }
+html.android-kiosk.portrait-kiosk .utility-button:first-child { width: 300px; }
+html.android-kiosk.portrait-kiosk .utility-button:last-child { width: 240px; }
+html.android-kiosk.portrait-kiosk .utility-button > span { width: 70px; height: 70px; border-radius: 22px; }
+html.android-kiosk.portrait-kiosk .utility-button svg { width: 36px; height: 36px; }
+html.android-kiosk.portrait-kiosk .utility-button small { font-size: 17px; }
+html.android-kiosk.portrait-kiosk .utility-button b { font-size: 22px; }
+html.android-kiosk.portrait-kiosk .header-cart { height: 90px; min-width: 360px; padding: 10px 24px 10px 12px; border-radius: 24px; gap: 18px; }
+html.android-kiosk.portrait-kiosk .header-cart > span:first-child { width: 66px; height: 66px; border-radius: 20px; }
+html.android-kiosk.portrait-kiosk .header-cart svg { width: 34px; height: 34px; }
+html.android-kiosk.portrait-kiosk .header-cart i { width: 34px; height: 34px; font-size: 17px; }
+html.android-kiosk.portrait-kiosk .header-cart b { font-size: 23px; }
+html.android-kiosk.portrait-kiosk .header-cart small { font-size: 14px; }
+html.android-kiosk.portrait-kiosk .cart-bar { font-size: 34px; }
+html.android-kiosk.portrait-kiosk .cart-bar--ready b,
+html.android-kiosk.portrait-kiosk .cart-bar b { font-size: 34px; }
+html.android-kiosk.portrait-kiosk .cart-bar--ready strong { font-size: 46px; }
