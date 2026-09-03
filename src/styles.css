@@ -1899,3 +1899,49 @@ html.android-kiosk.portrait-kiosk .categories button {
   font-size: 11px;
   line-height: 1.12;
 }
+
+/* Compact category pills with visible separation on kiosk and browser preview */
+html.portrait-kiosk .categories,
+html.android-kiosk.portrait-kiosk .categories {
+  gap: 12px;
+  column-gap: 12px;
+  padding-right: 52px;
+}
+
+html.portrait-kiosk .categories button,
+html.android-kiosk.portrait-kiosk .categories button {
+  flex: 0 0 auto;
+  min-width: 82px;
+  max-width: 116px;
+  min-height: 34px;
+  padding: 5px 9px;
+  margin-right: 0;
+  border-radius: 9px;
+  font-size: 7px;
+}
+
+html.android-kiosk.portrait-kiosk .categories {
+  gap: 26px;
+  column-gap: 26px;
+  padding-top: 11px;
+  padding-right: 82px;
+}
+
+html.android-kiosk.portrait-kiosk .categories button {
+  min-width: 126px;
+  max-width: 150px;
+  min-height: 52px;
+  padding: 7px 10px;
+  border-radius: 13px;
+  font-size: 10.5px;
+}
+
+html.portrait-kiosk .header-cart,
+html.android-kiosk.portrait-kiosk .header-cart {
+  gap: 18px;
+}
+
+html.android-kiosk.portrait-kiosk .header-cart {
+  gap: 34px;
+  padding-left: 18px;
+}
