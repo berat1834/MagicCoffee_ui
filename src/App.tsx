@@ -288,7 +288,7 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
         const selected = (choices[stepId] ?? []).includes(option.id);
         return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false} onClick={() => toggle(stepId, option.id, maxSelections(stepId, step))}><span>{selected && <Check />}</span><b>{option.name}</b><small>{option.priceDelta ? `+${money(option.priceDelta)}` : option.available === false ? t('product.soldOut') : t('product.included')}</small></button>;
       })}</div>{error && <div className="payment__error">{error}</div>}</div>
-    <footer><button className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button" disabled={index === steps.length - 1 && !requiredSelectionsComplete} onClick={next}>{index === steps.length - 1 ? t('common.addToCart') : t('common.continue')} <ArrowRight /></button></footer>
+    <footer><button className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button" disabled={index === steps.length - 1 && !requiredSelectionsComplete} onClick={next}>{index === steps.length - 1 ? t('common.addToCart') : <>{t('common.continue')} <ArrowRight /></>}</button></footer>
   </main>;
 }
 

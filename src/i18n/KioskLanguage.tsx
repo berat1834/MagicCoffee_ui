@@ -26,7 +26,9 @@ const KioskLanguageContext = createContext<KioskLanguageContextValue | null>(nul
 export function KioskLanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<KioskLanguage>('tr');
   const setLanguage = useCallback((nextLanguage: KioskLanguage) => {
-    if (SUPPORTED_LANGUAGES.includes(nextLanguage)) setLanguageState(nextLanguage);
+    if (!SUPPORTED_LANGUAGES.includes(nextLanguage)) return;
+    setKioskRuntimeLanguage(nextLanguage);
+    setLanguageState(nextLanguage);
   }, []);
 
   useEffect(() => {
