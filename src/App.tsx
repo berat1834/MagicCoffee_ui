@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { assetUrl, fetchCatalog, submitOrder } from './api';
 import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen, Selection } from './types';
 
@@ -222,14 +222,27 @@ function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }:
   </main>;
 }
 
-function Payment({ cart, fulfillment, submitError, onBack, onEdit, onSubmitStart, onSubmitError, onSuccess }: { cart: CartLine[]; fulfillment: Fulfillment; submitError: string; onBack: () => void; onEdit: (line: CartLine) => void; onSubmitStart: () => void; onSubmitError: (message: string) => void; onSuccess: (orderNumber: string) => void }) {
+function Payment({ cart, fulfillment, submitError, onBack, onEdit, onSubmitError, onSuccess }: { cart: CartLine[]; fulfillment: Fulfillment; submitError: string; onBack: () => void; onEdit: (line: CartLine) => void; onSubmitError: (message: string) => void; onSuccess: (orderNumber: string) => void }) {
   const [method, setMethod] = useState<'card' | 'meal-card' | null>(null);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
-  const complete = async () => { if (!method) return; setError(''); onSubmitStart(); try { const order = await submitOrder({ fulfillment, paymentMethod: method, total, lines: cart }); onSuccess(order.number); } catch (err) { onSubmitError(err instanceof Error ? err.message : 'Sipariş kaydedilemedi.'); } };
+  const complete = async () => {
+    if (!method || submitting) return;
+    setError('');
+    setSubmitting(true);
+    try {
+      const order = await submitOrder({ fulfillment, paymentMethod: method, total, lines: cart });
+      onSuccess(order.number);
+    } catch (err) {
+      onSubmitError(err instanceof Error ? err.message : 'Sipariş kaydedilemedi.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const shownError = error || submitError;
-  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack}><ArrowLeft /></button><div><h1>Ödeme Yöntemi</h1><p>Lütfen ödemeyi nasıl yapmak istediğinizi seçin.</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} onClick={() => setMethod('card')}><span><CreditCard /></span><b>Kredi / Banka Kartı</b><small>Temassız veya çipli ödeme</small></button><button className={method === 'meal-card' ? 'selected' : ''} onClick={() => setMethod('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>Yemek Kartı</b><small>Sodexo, Ticket, Multinet vb.</small></button></div>{shownError && <div className="payment__error">{shownError}</div>}</section><aside className="payment__summary"><div className="amount"><small>ÖDENECEK TUTAR</small><b>{money(total)}</b></div><div className="summary-card"><header><b>Sipariş Özeti</b><span>{itemCount} ürün</span></header><div className="summary-card__lines">{cart.map((line) => <article className="summary-line" key={line.key}><div className="summary-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" loading="eager" decoding="async" fetchPriority="high" /> : <span>{line.product.emoji || '☕'}</span>}</div><span><b>{line.product.name}</b><small>{line.quantity} adet</small>{hasActiveCustomization(line.product) && <button className="summary-line__edit" onClick={() => onEdit(line)}>Düzenle</button>}</span><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div><div className="summary-total"><span>Toplam</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? 'Burada' : 'Paket'}</p><button className="primary-button" disabled={!method} onClick={complete}>Siparişi Tamamla <ArrowRight /></button></div></aside></main>;
+  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack} disabled={submitting}><ArrowLeft /></button><div><h1>Ödeme Yöntemi</h1><p>Lütfen ödemeyi nasıl yapmak istediğinizi seçin.</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} disabled={submitting} onClick={() => setMethod('card')}><span><CreditCard /></span><b>Kredi / Banka Kartı</b><small>Temassız veya çipli ödeme</small></button><button className={method === 'meal-card' ? 'selected' : ''} disabled={submitting} onClick={() => setMethod('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>Yemek Kartı</b><small>Sodexo, Ticket, Multinet vb.</small></button></div>{shownError && <div className="payment__error">{shownError}</div>}</section><aside className="payment__summary"><div className="amount"><small>ÖDENECEK TUTAR</small><b>{money(total)}</b></div><div className="summary-card"><header><b>Sipariş Özeti</b><span>{itemCount} ürün</span></header><div className="summary-card__lines">{cart.map((line) => <article className="summary-line" key={line.key}><div className="summary-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" loading="eager" decoding="async" fetchPriority="high" /> : <span>{line.product.emoji || '☕'}</span>}</div><span><b>{line.product.name}</b><small>{line.quantity} adet</small>{hasActiveCustomization(line.product) && <button className="summary-line__edit" disabled={submitting} onClick={() => onEdit(line)}>Düzenle</button>}</span><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div><div className="summary-total"><span>Toplam</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? 'Burada' : 'Paket'}</p><button className="primary-button" disabled={!method || submitting} onClick={complete}>{submitting ? 'Sipariş Alınıyor' : 'Siparişi Tamamla'} <ArrowRight /></button></div></aside></main>;
 }
 
 function Success({ orderNumber, onRestart }: { orderNumber: string; onRestart: () => void }) {
@@ -251,7 +264,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [startPending, setStartPending] = useState(false);
-  const loadCatalog = () => {
+  const loadCatalog = useCallback(() => {
     setCatalogError('');
     setCatalogLoading(true);
     fetchCatalog().then((nextCatalog) => {
@@ -261,8 +274,19 @@ export default function App() {
       setCatalogError(error.message);
       setStartPending(false);
     }).finally(() => setCatalogLoading(false));
-  };
-  useEffect(loadCatalog, []);
+  }, []);
+  useEffect(loadCatalog, [loadCatalog]);
+  useEffect(() => {
+    const interval = window.setInterval(loadCatalog, 30000);
+    const refreshOnVisible = () => {
+      if (document.visibilityState === 'visible') loadCatalog();
+    };
+    document.addEventListener('visibilitychange', refreshOnVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', refreshOnVisible);
+    };
+  }, [loadCatalog]);
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(''), 3000);
@@ -342,7 +366,7 @@ export default function App() {
     {customizing && <Customizer product={customizing} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
     {!customizing && cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(false); }} onCheckout={() => { setCartOpen(false); setScreen('payment'); }} />}
     {!customizing && !cartOpen && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onCart={() => setCartOpen(true)} />}
-    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} submitError={paymentError} onBack={() => { setPaymentError(''); setScreen('catalog'); }} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSubmitStart={() => { setPaymentError(''); setOrderNumber(''); setScreen('success'); }} onSubmitError={(message) => { setPaymentError(message); setScreen('payment'); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
+    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} submitError={paymentError} onBack={() => { setPaymentError(''); setScreen('catalog'); }} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSubmitError={(message) => { setPaymentError(message); setScreen('payment'); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
     {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} onRestart={restart} />}
     {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>Menüye ulaşamadık</h2><p>Magic Coffee API çalışıyor mu kontrol edip yeniden deneyin.</p><button className="primary-button" onClick={loadCatalog}>Tekrar Dene</button></div>}
     {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>Kahve menüsü hazırlanıyor...</p></div>}

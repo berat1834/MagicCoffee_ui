@@ -1529,8 +1529,8 @@ html.android-kiosk.portrait-kiosk .summary-card > .primary-button {
 html.android-kiosk.portrait-kiosk .intro {
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(90,38,17,.04), rgba(70,24,10,.2)),
-    repeating-conic-gradient(from -14deg at 50% 8%, rgba(255,255,255,.12) 0 7deg, rgba(255,255,255,0) 7deg 18deg),
+    linear-gradient(180deg, rgba(90,38,17,.02), rgba(70,24,10,.18)),
+    repeating-conic-gradient(from -14deg at 50% 6%, rgba(255,255,255,.09) 0 7deg, rgba(255,255,255,0) 7deg 18deg),
     radial-gradient(circle at 50% 47%, #f4d6a8 0 31%, #c98955 56%, #5c2c17 100%);
 }
 
@@ -1540,7 +1540,7 @@ html.android-kiosk.portrait-kiosk .intro::before {
   inset: -16% -22%;
   background:
     radial-gradient(circle at 50% 18%, rgba(255,255,255,.12), transparent 28%),
-    repeating-conic-gradient(from -14deg at 50% 12%, rgba(255,255,255,.14) 0 8deg, transparent 8deg 18deg);
+    repeating-conic-gradient(from -14deg at 50% 10%, rgba(255,255,255,.1) 0 8deg, transparent 8deg 18deg);
   opacity: 1;
   mix-blend-mode: overlay;
   transform: none;
@@ -1553,7 +1553,7 @@ html.android-kiosk.portrait-kiosk .intro__grain {
 
 html.android-kiosk.portrait-kiosk .intro__header {
   position: absolute;
-  top: 42px;
+  top: 72px;
   left: 0;
   right: 0;
   display: flex;
@@ -1563,76 +1563,84 @@ html.android-kiosk.portrait-kiosk .intro__header {
 }
 
 html.android-kiosk.portrait-kiosk .intro__header .brand-mark {
-  gap: 18px;
+  gap: 14px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__header .brand-mark__star {
-  width: 86px;
-  height: 86px;
-  border-radius: 24px;
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__header .brand-mark__star svg {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__header .brand-mark__copy b {
-  font-size: 42px;
+  font-size: 34px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__header .brand-mark__copy em {
-  margin-top: 10px;
-  font-size: 18px;
+  margin-top: 8px;
+  font-size: 14px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__coffee-art {
-  width: 136%;
+  width: 110%;
   max-width: none;
   max-height: none;
-  top: 130px;
+  top: 165px;
   bottom: auto;
   left: 50%;
   transform: translateX(-50%);
 }
 
 html.android-kiosk.portrait-kiosk .intro__copy {
-  bottom: 410px;
+  bottom: 455px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__copy p {
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: .34em;
 }
 
 html.android-kiosk.portrait-kiosk .intro__copy h1 {
-  max-width: 720px;
-  margin: 12px auto 10px;
-  font-size: 58px;
-  line-height: .9;
+  max-width: 620px;
+  margin: 10px auto 8px;
+  font-size: 54px;
+  line-height: .88;
 }
 
 html.android-kiosk.portrait-kiosk .intro__copy span {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__touch {
-  bottom: 52px;
-  width: calc(100% - 112px);
-  min-height: 96px;
-  padding: 0 22px 0 42px;
-  font-size: 28px;
+  bottom: 58px;
+  width: calc(100% - 120px);
+  min-height: 82px;
+  padding: 0 18px 0 40px;
+  font-size: 23px;
 }
 
 html.android-kiosk.portrait-kiosk .intro__touch svg {
-  width: 72px;
-  height: 72px;
-  padding: 18px;
+  width: 64px;
+  height: 64px;
+  padding: 16px;
 }
 
 /* Magic Coffee Android Kiosk Specific Fixes */
 html.android-kiosk * {
   -webkit-tap-highlight-color: transparent;
+}
+
+html.android-kiosk button:focus,
+html.android-kiosk button:focus-visible,
+html.android-kiosk [role="button"]:focus,
+html.android-kiosk [role="button"]:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
 }
 html.android-kiosk button,
 html.android-kiosk [role="button"],
