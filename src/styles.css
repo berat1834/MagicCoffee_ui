@@ -2001,3 +2001,91 @@ html.portrait-kiosk .cart-line__main > div button.edit {
 html.android-kiosk.portrait-kiosk .cart-line__main > div button.edit {
   margin-right: 18px;
 }
+
+html.portrait-kiosk .payment-processing,
+html.android-kiosk.portrait-kiosk .payment-processing {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw;
+  height: var(--kiosk-height, 100vh);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fffaf5 !important;
+  background: rgba(54, 27, 16, .82) !important;
+  transform: none !important;
+}
+
+html.android-kiosk.portrait-kiosk .payment-processing {
+  gap: 28px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-processing .spin {
+  width: 108px;
+  height: 108px;
+  border-width: 10px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-processing b {
+  font-size: 42px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-processing small {
+  font-size: 26px;
+}
+
+html.portrait-kiosk .success,
+html.android-kiosk.portrait-kiosk .success {
+  justify-content: center !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+html.android-kiosk.portrait-kiosk .success > .brand-mark {
+  transform: scale(1.18);
+  margin-bottom: 54px;
+}
+
+html.android-kiosk.portrait-kiosk .success__check {
+  width: 190px;
+  height: 190px;
+  margin: 0 0 42px;
+  box-shadow: 0 0 0 34px rgba(26,162,99,.11), 0 24px 48px rgba(15,114,68,.22);
+}
+
+html.android-kiosk.portrait-kiosk .success__check svg {
+  width: 104px;
+  height: 104px;
+}
+
+html.android-kiosk.portrait-kiosk .success > p {
+  font-size: 20px;
+}
+
+html.android-kiosk.portrait-kiosk .success h1 {
+  font-size: 86px;
+}
+
+html.android-kiosk.portrait-kiosk .success h2 {
+  font-size: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .success > div {
+  margin: 46px 0 40px;
+  padding: 34px 70px;
+  border-radius: 34px;
+}
+
+html.android-kiosk.portrait-kiosk .success > div small {
+  font-size: 15px;
+}
+
+html.android-kiosk.portrait-kiosk .success > div b {
+  font-size: 72px;
+}
+
+html.android-kiosk.portrait-kiosk .success > .primary-button {
+  min-width: 330px;
+  min-height: 78px;
+  font-size: 24px;
+}

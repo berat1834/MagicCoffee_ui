@@ -169,6 +169,21 @@ function hasActiveCustomization(product: Product) {
   return Object.values(product.customization ?? {}).some((step) => step.enabled && step.options.some((option) => option.enabled !== false));
 }
 
+function maxSelections(stepId: string, step: CustomizationStep) {
+  return stepId === 'shot' ? 1 : Math.max(1, step.maxSelect ?? 1);
+}
+
+function normalizeChoices(choices: Record<string, string[]>, steps: [string, CustomizationStep][]) {
+  const normalized: Record<string, string[]> = {};
+  for (const [stepId, step] of steps) {
+    const allowed = new Set(step.options.filter((option) => option.enabled !== false && option.available !== false).map((option) => option.id));
+    const maxSelect = maxSelections(stepId, step);
+    const selected = (choices[stepId] ?? []).filter((optionId, index, optionIds) => allowed.has(optionId) && optionIds.indexOf(optionId) === index);
+    normalized[stepId] = selected.slice(0, maxSelect);
+  }
+  return normalized;
+}
+
 function cartLineKey(product: Product, selection?: Selection) {
   if (!selection) return product.id;
   const normalized = Object.fromEntries(
@@ -181,7 +196,7 @@ function cartLineKey(product: Product, selection?: Selection) {
 
 function Customizer({ product, initial, onClose, onSave }: { product: Product; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
   const steps = Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled && step.options.some((option) => option.enabled !== false));
-  const [choices, setChoices] = useState<Record<string, string[]>>(() => initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false).map((option) => option.id)])));
+  const [choices, setChoices] = useState<Record<string, string[]>>(() => normalizeChoices(initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false && option.available !== false).map((option) => option.id)])), steps));
   const [index, setIndex] = useState(0);
   const [error, setError] = useState('');
   const current = steps[index];
@@ -196,7 +211,7 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
     const [stepId, step] = current;
     if (step.required && (choices[stepId] ?? []).length < (step.minSelect ?? 1)) { setError(`${step.title} seçimi zorunlu.`); return; }
     setError('');
-    if (index < steps.length - 1) setIndex(index + 1); else onSave({ choices }, unitPrice);
+    if (index < steps.length - 1) setIndex(index + 1); else onSave({ choices: normalizeChoices(choices, steps) }, unitPrice);
   };
   if (!current) return null;
   const [stepId, step] = current;
@@ -207,7 +222,7 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
     <div className="customizer__content"><div className="customizer__title"><span><small>SEÇİM</small><h3>{step.title}</h3></span><p>{step.required ? 'Bu adım zorunludur.' : 'İstersen bu adımı boş bırakabilirsin.'}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled !== false).map((option) => {
         const selected = (choices[stepId] ?? []).includes(option.id);
-        return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false} onClick={() => toggle(stepId, option.id, step.maxSelect ?? 1)}><span>{selected && <Check />}</span><b>{option.name}</b><small>{option.priceDelta ? `+${money(option.priceDelta)}` : option.available === false ? 'Stokta yok' : 'Fiyata dahil'}</small></button>;
+        return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false} onClick={() => toggle(stepId, option.id, maxSelections(stepId, step))}><span>{selected && <Check />}</span><b>{option.name}</b><small>{option.priceDelta ? `+${money(option.priceDelta)}` : option.available === false ? 'Stokta yok' : 'Fiyata dahil'}</small></button>;
       })}</div>{error && <div className="payment__error">{error}</div>}</div>
     <footer><button className="secondary-button" onClick={onClose}>Vazgeç</button><button className="primary-button" disabled={index === steps.length - 1 && !requiredSelectionsComplete} onClick={next}>{index === steps.length - 1 ? 'Sepete Ekle' : 'Devam Et'} <ArrowRight /></button></footer>
   </main>;
