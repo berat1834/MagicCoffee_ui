@@ -5,6 +5,15 @@ import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
 
+function preloadCatalogImages(catalog: Catalog) {
+  const urls = new Set(catalog.products.map((product) => assetUrl(product.image)).filter(Boolean));
+  for (const url of urls) {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = url;
+  }
+}
+
 function usePress(action: () => void) {
   const lastPress = useRef(0);
   const startPoint = useRef<{ x: number; y: number } | null>(null);
@@ -96,7 +105,7 @@ function ProductCard({ product, quantity, onClick }: { product: Product; quantit
   const disabled = product.available === false;
   return <button type="button" className={`product-card ${disabled ? 'product-card--disabled' : ''}`} data-product-id={product.id} data-clickable="product" disabled={disabled}>
     {product.popular && <span className="product-card__popular">ÇOK SEVİLEN</span>}{quantity > 0 && <span className="product-card__quantity">{quantity}</span>}
-    <div className={`product-card__visual ${product.image ? '' : 'product-card__visual--emoji'}`}>{product.image ? <img src={assetUrl(product.image)} alt={product.name} draggable={false} /> : <span>{product.emoji || '☕'}</span>}</div>
+    <div className={`product-card__visual ${product.image ? '' : 'product-card__visual--emoji'}`}>{product.image ? <img src={assetUrl(product.image)} alt={product.name} draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{product.emoji || '☕'}</span>}</div>
     <div className="product-card__body"><small>{disabled ? product.unavailableReason : product.categoryId}</small><h3>{product.name}</h3><p>{product.description}</p><b>{money(product.price)}</b></div>
   </button>;
 }
@@ -190,7 +199,7 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   const [stepId, step] = current;
   return <main className="customizer page-enter" role="dialog" aria-modal="true">
     <header><button className="icon-button" onClick={onClose}><X /></button><div><small>KAHVENİ HAZIRLA</small><h2>{product.name}</h2></div><b>{money(unitPrice)}</b></header>
-    <div className="customizer__hero">{product.image ? <img src={assetUrl(product.image)} alt="" draggable={false} /> : <span className="customizer__emoji">{product.emoji || '☕'}</span>}<div><span>MAGIC COFFEE</span><b>{step.title}</b></div></div>
+    <div className="customizer__hero">{product.image ? <img src={assetUrl(product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span className="customizer__emoji">{product.emoji || '☕'}</span>}<div><span>MAGIC COFFEE</span><b>{step.title}</b></div></div>
     <nav className="steps">{steps.map(([id, item], stepIndex) => <button key={id} className={stepIndex === index ? 'active' : ''} onClick={() => setIndex(stepIndex)}><i>{stepIndex + 1}</i>{item.title}</button>)}</nav>
     <div className="customizer__content"><div className="customizer__title"><span><small>SEÇİM</small><h3>{step.title}</h3></span><p>{step.required ? 'Bu adım zorunludur.' : 'İstersen bu adımı boş bırakabilirsin.'}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled !== false).map((option) => {
@@ -242,7 +251,10 @@ export default function App() {
   const loadCatalog = () => {
     setCatalogError('');
     setCatalogLoading(true);
-    fetchCatalog().then(setCatalog).catch((error: Error) => setCatalogError(error.message)).finally(() => setCatalogLoading(false));
+    fetchCatalog().then((nextCatalog) => {
+      setCatalog(nextCatalog);
+      preloadCatalogImages(nextCatalog);
+    }).catch((error: Error) => setCatalogError(error.message)).finally(() => setCatalogLoading(false));
   };
   useEffect(loadCatalog, []);
   useEffect(() => {

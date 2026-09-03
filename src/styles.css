@@ -1029,6 +1029,8 @@ html.portrait-kiosk .customizer__title p {
 
 html.portrait-kiosk .option-list button {
   min-height: 68px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  column-gap: 8px;
   border-color: #d8b397;
   border-radius: 13px;
   background: #fff8f3;
@@ -1276,9 +1278,9 @@ html.android-kiosk.portrait-kiosk .customizer__title h3 { font-size: 44px; }
 html.android-kiosk.portrait-kiosk .customizer__title small { font-size: 15px; }
 html.android-kiosk.portrait-kiosk .customizer__title p { max-width: 320px; font-size: 18px; }
 html.android-kiosk.portrait-kiosk .option-list { gap: 20px; }
-html.android-kiosk.portrait-kiosk .option-list button { min-height: 146px; border-radius: 26px; }
+html.android-kiosk.portrait-kiosk .option-list button { min-height: 146px; grid-template-columns: 78px minmax(0, 1fr); column-gap: 22px; padding: 22px; border-radius: 26px; }
 html.android-kiosk.portrait-kiosk .option-list button > span { width: 58px; height: 58px; border-radius: 18px; }
-html.android-kiosk.portrait-kiosk .option-list button b { font-size: 22px; }
+html.android-kiosk.portrait-kiosk .option-list button b { min-width: 0; font-size: 22px; line-height: 1.2; }
 html.android-kiosk.portrait-kiosk .option-list button small { font-size: 15px; }
 html.android-kiosk.portrait-kiosk .customizer > footer { min-height: 136px; padding: 22px 42px; gap: 24px; }
 html.android-kiosk.portrait-kiosk .primary-button,
