@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { assetUrl, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type PosPaymentStatus } from './api';
+import { customizationOptionLabel, customizationStepLabel } from './i18n/catalogLocalization';
 import { SUPPORTED_LANGUAGES, useKioskLanguage, type KioskLanguage } from './i18n/KioskLanguage';
 import { prepareOrderPrinter, printOrderReceiptOnce, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
 import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen, Selection } from './types';
@@ -258,7 +259,7 @@ function cartLineKey(product: Product, selection?: Selection) {
 }
 
 function Customizer({ product, initial, onClose, onSave }: { product: Product; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
-  const { t } = useKioskLanguage();
+  const { language, t } = useKioskLanguage();
   const steps = Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled && step.options.some((option) => option.enabled !== false));
   const [choices, setChoices] = useState<Record<string, string[]>>(() => normalizeChoices(initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false && option.available !== false).map((option) => option.id)])), steps));
   const [index, setIndex] = useState(0);
@@ -273,7 +274,7 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   });
   const next = () => {
     const [stepId, step] = current;
-    if (step.required && (choices[stepId] ?? []).length < (step.minSelect ?? 1)) { setError(t('customizer.requiredError', { title: step.title })); return; }
+    if (step.required && (choices[stepId] ?? []).length < (step.minSelect ?? 1)) { setError(t('customizer.requiredError', { title: customizationStepLabel(language, stepId, step) })); return; }
     setError('');
     if (index < steps.length - 1) setIndex(index + 1); else onSave({ choices: normalizeChoices(choices, steps) }, unitPrice);
   };
@@ -281,12 +282,12 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   const [stepId, step] = current;
   return <main className="customizer page-enter" role="dialog" aria-modal="true">
     <header><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button><div><small>{t('customizer.prepare')}</small><h2>{product.name}</h2></div><b>{money(unitPrice)}</b></header>
-    <div className="customizer__hero">{product.image ? <img src={assetUrl(product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span className="customizer__emoji">{product.emoji || '☕'}</span>}<div><span>MAGIC COFFEE</span><b>{step.title}</b></div></div>
-    <nav className="steps">{steps.map(([id, item], stepIndex) => <button key={id} className={stepIndex === index ? 'active' : ''} onClick={() => setIndex(stepIndex)}><i>{stepIndex + 1}</i>{item.title}</button>)}</nav>
-    <div className="customizer__content"><div className="customizer__title"><span><small>{t('customizer.selection')}</small><h3>{step.title}</h3></span><p>{step.required ? t('customizer.required') : t('customizer.optional')}</p></div>
+    <div className="customizer__hero">{product.image ? <img src={assetUrl(product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span className="customizer__emoji">{product.emoji || '☕'}</span>}<div><span>MAGIC COFFEE</span><b>{customizationStepLabel(language, stepId, step)}</b></div></div>
+    <nav className="steps">{steps.map(([id, item], stepIndex) => <button key={id} className={stepIndex === index ? 'active' : ''} onClick={() => setIndex(stepIndex)}><i>{stepIndex + 1}</i>{customizationStepLabel(language, id, item)}</button>)}</nav>
+    <div className="customizer__content"><div className="customizer__title"><span><small>{t('customizer.selection')}</small><h3>{customizationStepLabel(language, stepId, step)}</h3></span><p>{step.required ? t('customizer.required') : t('customizer.optional')}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled !== false).map((option) => {
         const selected = (choices[stepId] ?? []).includes(option.id);
-        return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false} onClick={() => toggle(stepId, option.id, maxSelections(stepId, step))}><span>{selected && <Check />}</span><b>{option.name}</b><small>{option.priceDelta ? `+${money(option.priceDelta)}` : option.available === false ? t('product.soldOut') : t('product.included')}</small></button>;
+        return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false} onClick={() => toggle(stepId, option.id, maxSelections(stepId, step))}><span>{selected && <Check />}</span><b>{customizationOptionLabel(language, stepId, option)}</b><small>{option.priceDelta ? `+${money(option.priceDelta)}` : option.available === false ? t('product.soldOut') : t('product.included')}</small></button>;
       })}</div>{error && <div className="payment__error">{error}</div>}</div>
     <footer><button className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button" disabled={index === steps.length - 1 && !requiredSelectionsComplete} onClick={next}>{index === steps.length - 1 ? t('common.addToCart') : <>{t('common.continue')} <ArrowRight /></>}</button></footer>
   </main>;
@@ -432,11 +433,15 @@ export default function App() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [startPending, setStartPending] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const catalogRequestRef = useRef(0);
   const kioskAudio = useKioskAudio(soundOn, language);
   const loadCatalog = useCallback(() => {
+    const requestId = ++catalogRequestRef.current;
+    const requestedLanguage = language;
     setCatalogError('');
     setCatalogLoading(true);
-    fetchCatalog(language).then((nextCatalog) => {
+    fetchCatalog(requestedLanguage).then((nextCatalog) => {
+      if (requestId !== catalogRequestRef.current || nextCatalog.language !== requestedLanguage) return;
       setCatalog(nextCatalog);
       setCart((items) => items.map((line) => {
         const product = nextCatalog.products.find((candidate) => candidate.id === line.product.id);
@@ -444,9 +449,12 @@ export default function App() {
       }));
       preloadCatalogImages(nextCatalog);
     }).catch((error: Error) => {
+      if (requestId !== catalogRequestRef.current) return;
       setCatalogError(error.message);
       setStartPending(false);
-    }).finally(() => setCatalogLoading(false));
+    }).finally(() => {
+      if (requestId === catalogRequestRef.current) setCatalogLoading(false);
+    });
   }, [language]);
   useEffect(loadCatalog, [loadCatalog]);
   useEffect(() => {

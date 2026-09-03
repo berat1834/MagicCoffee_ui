@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import enTranslations from './locales/en.json';
 import trTranslations from './locales/tr.json';
-import { setKioskRuntimeLanguage } from '@magiccoffee/i18n-runtime/languageState';
 
 export const SUPPORTED_LANGUAGES = ['tr', 'en'] as const;
 export type KioskLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -27,13 +26,11 @@ export function KioskLanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<KioskLanguage>('tr');
   const setLanguage = useCallback((nextLanguage: KioskLanguage) => {
     if (!SUPPORTED_LANGUAGES.includes(nextLanguage)) return;
-    setKioskRuntimeLanguage(nextLanguage);
     setLanguageState(nextLanguage);
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = language;
-    setKioskRuntimeLanguage(language);
   }, [language]);
 
   const value = useMemo<KioskLanguageContextValue>(() => ({
