@@ -24,7 +24,8 @@ function syncKioskViewport() {
   }
 
   root.classList.add('portrait-kiosk');
-  root.style.setProperty('--kiosk-width', `${Math.min(window.innerWidth, KIOSK_LOGICAL_WIDTH)}px`);
+  const kioskWidth = isAndroidKiosk ? window.innerWidth : Math.min(window.innerWidth, KIOSK_LOGICAL_WIDTH);
+  root.style.setProperty('--kiosk-width', `${kioskWidth}px`);
   root.style.setProperty('--kiosk-height', `${viewportHeight}px`);
 }
 
