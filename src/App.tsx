@@ -51,11 +51,11 @@ function productCartQuantity(cart: CartLine[], productId: string) {
 }
 
 function addToCartNotice(product: Product, nextCartQuantity: number) {
-  if (!product.stockTrackingEnabled || product.stockQuantity == null) return `${product.name} sepete eklendi.`;
+  if (!product.stockTrackingEnabled || product.stockQuantity == null) return null;
   const remaining = product.stockQuantity - nextCartQuantity;
   if (remaining <= 0) return `${product.name} sepete eklendi. Stokta kalmadı.`;
   if (remaining === 1) return `${product.name} sepete eklendi. Son 1 ürün kaldı.`;
-  return `${product.name} sepete eklendi. Kalan stok: ${remaining}.`;
+  return null;
 }
 
 function BrandMark({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
@@ -103,52 +103,45 @@ function ProductCard({ product, quantity, onClick }: { product: Product; quantit
 function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog; cart: CartLine[]; onProduct: (product: Product) => void; onCart: () => void }) {
   const [activeCategory, setActiveCategory] = useState('all');
   const productsRef = useRef<HTMLElement>(null);
+  const lastPointerHandledRef = useRef(0);
   const visibleCategories = activeCategory === 'all' ? catalog.categories : catalog.categories.filter((item) => item.id === activeCategory);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const selectCategory = (categoryId: string) => { setActiveCategory(categoryId); productsRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); };
   useEffect(() => {
-    let lastHandled = 0;
     const handleNativePress = (event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
       const now = Date.now();
-      if (now - lastHandled < 450) return;
+      if (event.type === 'click' && now - lastPointerHandledRef.current < 700) return;
 
       const productButton = target.closest<HTMLButtonElement>('.product-card');
       if (productButton && !productButton.disabled) {
         const product = catalog.products.find((item) => item.id === productButton.dataset.productId);
         if (!product) return;
-        lastHandled = now;
+        if (event.type === 'pointerup') lastPointerHandledRef.current = now;
         if (event.cancelable) event.preventDefault();
         onProduct(product);
         return;
       }
 
-      if (target.closest('.header-cart, .cart-bar')) {
-        lastHandled = now;
-        if (event.cancelable) event.preventDefault();
-        onCart();
-      }
     };
 
-    document.addEventListener('touchend', handleNativePress, { capture: true, passive: false });
     document.addEventListener('pointerup', handleNativePress, { capture: true });
     document.addEventListener('click', handleNativePress, { capture: true });
     return () => {
-      document.removeEventListener('touchend', handleNativePress, { capture: true });
       document.removeEventListener('pointerup', handleNativePress, { capture: true });
       document.removeEventListener('click', handleNativePress, { capture: true });
     };
-  }, [catalog.products, onCart, onProduct]);
+  }, [catalog.products, onProduct]);
   return <main className="catalog page-enter">
-    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart"><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>Sepetim</b><small>{itemCount ? money(total) : 'Sepetiniz boş'}</small></span></button></header>
+    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>Sepetim</b><small>{itemCount ? money(total) : 'Sepetiniz boş'}</small></span></button></header>
     <div className="category-menu"><div className="category-menu__label"><small>MENÜ</small><b>Kategorini seç</b></div><nav className="categories" aria-label="Ürün kategorileri"><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>Tümü</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav></div>
     <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
       return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} ürün</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;
     })}</section>
-    <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart"><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>Sepete Git</b><strong>{money(total)}</strong></> : <span>Seçtikleriniz burada görünecek</span>}</button>
+    <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart" onClick={onCart}><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>Sepete Git</b><strong>{money(total)}</strong></> : <span>Seçtikleriniz burada görünecek</span>}</button>
   </main>;
 }
 
@@ -216,17 +209,19 @@ function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }:
   </section></div>;
 }
 
-function Payment({ cart, fulfillment, onBack, onEdit, onSuccess }: { cart: CartLine[]; fulfillment: Fulfillment; onBack: () => void; onEdit: (line: CartLine) => void; onSuccess: (orderNumber: string) => void }) {
+function Payment({ cart, fulfillment, submitError, onBack, onEdit, onSubmitStart, onSubmitError, onSuccess }: { cart: CartLine[]; fulfillment: Fulfillment; submitError: string; onBack: () => void; onEdit: (line: CartLine) => void; onSubmitStart: () => void; onSubmitError: (message: string) => void; onSuccess: (orderNumber: string) => void }) {
   const [method, setMethod] = useState<'card' | 'meal-card' | null>(null);
   const [error, setError] = useState('');
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
-  const complete = async () => { if (!method) return; try { const order = await submitOrder({ fulfillment, paymentMethod: method, total, lines: cart }); onSuccess(order.number); } catch (err) { setError(err instanceof Error ? err.message : 'Sipariş kaydedilemedi.'); } };
-  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack}><ArrowLeft /></button><div><h1>Ödeme Yöntemi</h1><p>Lütfen ödemeyi nasıl yapmak istediğinizi seçin.</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} onClick={() => setMethod('card')}><span><CreditCard /></span><b>Kredi / Banka Kartı</b><small>Temassız veya çipli ödeme</small></button><button className={method === 'meal-card' ? 'selected' : ''} onClick={() => setMethod('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>Yemek Kartı</b><small>Sodexo, Ticket, Multinet vb.</small></button></div>{error && <div className="payment__error">{error}</div>}</section><aside className="payment__summary"><div className="amount"><small>ÖDENECEK TUTAR</small><b>{money(total)}</b></div><div className="summary-card"><header><b>Sipariş Özeti</b><span>{itemCount} ürün</span></header><div className="summary-card__lines">{cart.map((line) => <article className="summary-line" key={line.key}><div className="summary-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" /> : <span>{line.product.emoji || '☕'}</span>}</div><span><b>{line.product.name}</b><small>{line.quantity} adet</small>{hasActiveCustomization(line.product) && <button className="summary-line__edit" onClick={() => onEdit(line)}>Düzenle</button>}</span><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div><div className="summary-total"><span>Toplam</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? 'Burada' : 'Paket'}</p><button className="primary-button" disabled={!method} onClick={complete}>Siparişi Tamamla <ArrowRight /></button></div></aside></main>;
+  const complete = async () => { if (!method) return; setError(''); onSubmitStart(); try { const order = await submitOrder({ fulfillment, paymentMethod: method, total, lines: cart }); onSuccess(order.number); } catch (err) { onSubmitError(err instanceof Error ? err.message : 'Sipariş kaydedilemedi.'); } };
+  const shownError = error || submitError;
+  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack}><ArrowLeft /></button><div><h1>Ödeme Yöntemi</h1><p>Lütfen ödemeyi nasıl yapmak istediğinizi seçin.</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} onClick={() => setMethod('card')}><span><CreditCard /></span><b>Kredi / Banka Kartı</b><small>Temassız veya çipli ödeme</small></button><button className={method === 'meal-card' ? 'selected' : ''} onClick={() => setMethod('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>Yemek Kartı</b><small>Sodexo, Ticket, Multinet vb.</small></button></div>{shownError && <div className="payment__error">{shownError}</div>}</section><aside className="payment__summary"><div className="amount"><small>ÖDENECEK TUTAR</small><b>{money(total)}</b></div><div className="summary-card"><header><b>Sipariş Özeti</b><span>{itemCount} ürün</span></header><div className="summary-card__lines">{cart.map((line) => <article className="summary-line" key={line.key}><div className="summary-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" /> : <span>{line.product.emoji || '☕'}</span>}</div><span><b>{line.product.name}</b><small>{line.quantity} adet</small>{hasActiveCustomization(line.product) && <button className="summary-line__edit" onClick={() => onEdit(line)}>Düzenle</button>}</span><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div><div className="summary-total"><span>Toplam</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? 'Burada' : 'Paket'}</p><button className="primary-button" disabled={!method} onClick={complete}>Siparişi Tamamla <ArrowRight /></button></div></aside></main>;
 }
 
 function Success({ orderNumber, onRestart }: { orderNumber: string; onRestart: () => void }) {
-  return <main className="success page-enter"><BrandMark /><span className="success__check"><CheckCircle2 /></span><p>SİPARİŞİNİ ALDIK</p><h1>Teşekkürler!</h1><h2>Kahven barista ekranına düştü.</h2><div><small>SİPARİŞ NUMARAN</small><b>{orderNumber}</b></div><button className="primary-button" onClick={onRestart}><RotateCcw /> Yeni Sipariş</button></main>;
+  const completed = Boolean(orderNumber);
+  return <main className="success page-enter"><BrandMark /><span className="success__check"><CheckCircle2 /></span><p>{completed ? 'SİPARİŞİNİ ALDIK' : 'SİPARİŞİN ALINIYOR'}</p><h1>Teşekkürler!</h1><h2>{completed ? 'Kahven barista ekranına düştü.' : 'Siparişin kaydediliyor.'}</h2><div><small>SİPARİŞ NUMARAN</small><b>{orderNumber || 'Hazırlanıyor...'}</b></div><button className="primary-button" disabled={!completed} onClick={onRestart}><RotateCcw /> Yeni Sipariş</button></main>;
 }
 
 export default function App() {
@@ -239,6 +234,7 @@ export default function App() {
   const [editing, setEditing] = useState<CartLine | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [paymentError, setPaymentError] = useState('');
   const [notice, setNotice] = useState('');
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [startPending, setStartPending] = useState(false);
@@ -278,7 +274,8 @@ export default function App() {
     const key = cartLineKey(product);
     const nextQuantity = productCartQuantity(cart, product.id) + 1;
     setCart((items) => items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1 } : line) : [...items, { key, product, quantity: 1, unitPrice: product.price }]);
-    setNotice(addToCartNotice(product, nextQuantity));
+    const nextNotice = addToCartNotice(product, nextQuantity);
+    if (nextNotice) setNotice(nextNotice);
   };
   const saveCustomized = (selection: Selection, unitPrice: number) => {
     if (!customizing) return;
@@ -298,7 +295,8 @@ export default function App() {
         ? withoutEdited.map((line) => line.key === key ? { ...line, quantity: line.quantity + editing.quantity, unitPrice } : line)
         : [...withoutEdited, { key, product: customizing, quantity: editing.quantity, unitPrice, selection }];
     });
-    setNotice(addToCartNotice(customizing, nextQuantity));
+    const nextNotice = addToCartNotice(customizing, nextQuantity);
+    if (nextNotice) setNotice(nextNotice);
     setCustomizing(null);
     setEditing(null);
   };
@@ -310,16 +308,19 @@ export default function App() {
       return items;
     }
     const nextItems = items.map((line) => line.key === key ? { ...line, quantity: line.quantity + delta } : line).filter((line) => line.quantity > 0);
-    if (delta > 0) setNotice(addToCartNotice(target.product, productCartQuantity(nextItems, target.product.id)));
+    if (delta > 0) {
+      const nextNotice = addToCartNotice(target.product, productCartQuantity(nextItems, target.product.id));
+      if (nextNotice) setNotice(nextNotice);
+    }
     return nextItems;
   });
-  const restart = () => { setCart([]); setOrderNumber(''); setCartOpen(false); setNotice(''); setScreen('intro'); loadCatalog(); };
+  const restart = () => { setCart([]); setOrderNumber(''); setPaymentError(''); setCartOpen(false); setNotice(''); setScreen('intro'); loadCatalog(); };
   return <div className="app-shell kiosk-no-focus-ring">
     {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading || !catalog} />}
     {screen === 'order-type' && <OrderType onContinue={(type) => { setFulfillment(type); setScreen('catalog'); }} />}
     {notice && <div className="stock-toast">{notice}</div>}
     {screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onCart={() => setCartOpen(true)} />}
-    {screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => setScreen('catalog')} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
+    {screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} submitError={paymentError} onBack={() => { setPaymentError(''); setScreen('catalog'); }} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSubmitStart={() => { setPaymentError(''); setOrderNumber(''); setScreen('success'); }} onSubmitError={(message) => { setPaymentError(message); setScreen('payment'); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
     {screen === 'success' && <Success orderNumber={orderNumber} onRestart={restart} />}
     {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>Menüye ulaşamadık</h2><p>Magic Coffee API çalışıyor mu kontrol edip yeniden deneyin.</p><button className="primary-button" onClick={loadCatalog}>Tekrar Dene</button></div>}
     {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>Kahve menüsü hazırlanıyor...</p></div>}

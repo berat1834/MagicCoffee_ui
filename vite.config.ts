@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const API_BASE_URL = 'https://magiccoffee-api.onrender.com';
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -8,10 +10,9 @@ export default defineConfig({
     strictPort: true,
     host: '0.0.0.0',
     proxy: {
-      '/api': 'http://127.0.0.1:8300',
-      '/health': 'http://127.0.0.1:8300',
-      '/uploads': 'http://127.0.0.1:8300',
+      '/api': API_BASE_URL,
+      '/health': API_BASE_URL,
+      '/uploads': API_BASE_URL,
     },
   },
 });
-
