@@ -1203,3 +1203,96 @@ html.portrait-kiosk .order-type-mini {
 html.portrait-kiosk .summary-card > .primary-button {
   min-height: 46px;
 }
+
+html.android-kiosk.portrait-kiosk .intro__header { top: 84px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__star { width: 92px; height: 92px; border-radius: 26px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__star svg { width: 48px; height: 48px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__copy b { font-size: 46px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__copy em { margin-top: 11px; font-size: 20px; }
+html.android-kiosk.portrait-kiosk .intro__coffee-art { width: 84%; top: 335px; max-height: 760px; }
+html.android-kiosk.portrait-kiosk .intro__copy { bottom: 315px; left: 0; right: 0; inset-inline: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+html.android-kiosk.portrait-kiosk .intro__copy p { width: 100%; font-size: 20px; text-align: center; }
+html.android-kiosk.portrait-kiosk .intro__copy h1 { max-width: 760px; margin: 14px auto 12px; font-size: 50px; line-height: .94; }
+html.android-kiosk.portrait-kiosk .intro__copy span { max-width: 560px; font-size: 20px; text-align: center; }
+html.android-kiosk.portrait-kiosk .intro__touch { bottom: 54px; width: calc(100% - 118px); min-height: 104px; padding: 0 26px 0 46px; border-radius: 999px; font-size: 31px; }
+
+html.android-kiosk.portrait-kiosk .order-type { padding: 34px; }
+html.android-kiosk.portrait-kiosk .order-type__actions { gap: 24px; }
+html.android-kiosk.portrait-kiosk .order-type__actions > * { min-height: 106px; border-radius: 24px; }
+html.android-kiosk.portrait-kiosk .order-type__content { max-width: 980px; padding-top: 490px; }
+html.android-kiosk.portrait-kiosk .order-type h1 { font-size: 38px; }
+html.android-kiosk.portrait-kiosk .order-type__content > p { margin: 18px 0 62px; font-size: 15px; }
+html.android-kiosk.portrait-kiosk .order-type__grid { gap: 28px; }
+html.android-kiosk.portrait-kiosk .order-type__grid button { min-height: 400px; border-radius: 30px; }
+html.android-kiosk.portrait-kiosk .order-type__grid button > span { width: 136px; height: 136px; margin-bottom: 28px; }
+html.android-kiosk.portrait-kiosk .order-type__grid button svg { width: 68px; height: 68px; }
+html.android-kiosk.portrait-kiosk .order-type__grid button b { font-size: 34px; }
+
+html.android-kiosk.portrait-kiosk .catalog { grid-template-rows: 116px auto minmax(0, 1fr) 126px; }
+html.android-kiosk.portrait-kiosk .catalog__header { height: 116px; padding: 0 36px; }
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark__star { width: 78px; height: 78px; border-radius: 22px; }
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark__copy b { font-size: 42px; }
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark__copy em { font-size: 17px; }
+html.android-kiosk.portrait-kiosk .catalog__cart { min-width: 340px; min-height: 78px; border-radius: 24px; font-size: 20px; }
+html.android-kiosk.portrait-kiosk .catalog__cart small { font-size: 12px; }
+html.android-kiosk.portrait-kiosk .category-menu { padding: 18px 42px 24px; }
+html.android-kiosk.portrait-kiosk .category-menu > small { font-size: 16px; }
+html.android-kiosk.portrait-kiosk .categories { gap: 12px; }
+html.android-kiosk.portrait-kiosk .categories button { min-height: 78px; border-radius: 18px; font-size: 15px; }
+html.android-kiosk.portrait-kiosk .products { padding: 28px 42px 34px; }
+html.android-kiosk.portrait-kiosk .category-section + .category-section { margin-top: 44px; }
+html.android-kiosk.portrait-kiosk .section-heading h1 { font-size: 29px; }
+html.android-kiosk.portrait-kiosk .section-heading small { min-width: 72px; padding: 4px 14px; border-radius: 999px; font-size: 12px; }
+html.android-kiosk.portrait-kiosk .product-grid { gap: 22px; }
+html.android-kiosk.portrait-kiosk .product-card { min-height: 330px; border-radius: 22px; }
+html.android-kiosk.portrait-kiosk .product-card__visual { height: 210px; }
+html.android-kiosk.portrait-kiosk .product-card__visual img { padding: 16px; }
+html.android-kiosk.portrait-kiosk .product-card__popular { top: 12px; left: 12px; padding: 8px 12px; border-radius: 10px; font-size: 10px; }
+html.android-kiosk.portrait-kiosk .product-card__quantity { width: 46px; height: 46px; font-size: 20px; }
+html.android-kiosk.portrait-kiosk .product-card__body { padding: 16px 14px 18px; }
+html.android-kiosk.portrait-kiosk .product-card__body h3 { height: 46px; font-size: 17px; line-height: 1.35; }
+html.android-kiosk.portrait-kiosk .product-card__body > b { margin: 14px -14px -18px; padding: 14px 10px 16px; font-size: 21px; }
+html.android-kiosk.portrait-kiosk .cart-bar { height: 126px; min-height: 126px; padding: 0 44px; border-radius: 32px 32px 0 0; gap: 28px; }
+html.android-kiosk.portrait-kiosk .cart-bar__icon { width: 76px; height: 76px; border-radius: 24px; }
+html.android-kiosk.portrait-kiosk .cart-bar__icon svg { width: 38px; }
+html.android-kiosk.portrait-kiosk .cart-bar--ready b,
+html.android-kiosk.portrait-kiosk .cart-bar b { font-size: 30px; }
+html.android-kiosk.portrait-kiosk .cart-bar--ready strong { font-size: 42px; }
+
+html.android-kiosk.portrait-kiosk .customizer > header { min-height: 146px; grid-template-columns: 90px minmax(0, 1fr) auto; padding: 24px 42px; }
+html.android-kiosk.portrait-kiosk .customizer > header h2 { font-size: 38px; }
+html.android-kiosk.portrait-kiosk .customizer > header small { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .customizer > header > b { font-size: 34px; }
+html.android-kiosk.portrait-kiosk .customizer__hero { height: 330px; }
+html.android-kiosk.portrait-kiosk .customizer__hero img { width: min(620px, 72%); height: 280px; }
+html.android-kiosk.portrait-kiosk .customizer__hero > div { left: 42px; bottom: 38px; }
+html.android-kiosk.portrait-kiosk .customizer__hero > div span { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .customizer__hero > div b { font-size: 36px; }
+html.android-kiosk.portrait-kiosk .steps { height: 104px; padding: 0 38px; }
+html.android-kiosk.portrait-kiosk .steps button { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .steps button i { width: 44px; height: 44px; }
+html.android-kiosk.portrait-kiosk .customizer__content { padding: 56px 42px; }
+html.android-kiosk.portrait-kiosk .customizer__title h3 { font-size: 44px; }
+html.android-kiosk.portrait-kiosk .customizer__title small { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .customizer__title p { max-width: 320px; font-size: 18px; }
+html.android-kiosk.portrait-kiosk .option-list { gap: 20px; }
+html.android-kiosk.portrait-kiosk .option-list button { min-height: 146px; border-radius: 26px; }
+html.android-kiosk.portrait-kiosk .option-list button > span { width: 58px; height: 58px; border-radius: 18px; }
+html.android-kiosk.portrait-kiosk .option-list button b { font-size: 22px; }
+html.android-kiosk.portrait-kiosk .option-list button small { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .customizer > footer { min-height: 136px; padding: 22px 42px; gap: 24px; }
+html.android-kiosk.portrait-kiosk .primary-button,
+html.android-kiosk.portrait-kiosk .secondary-button { min-height: 92px; border-radius: 24px; font-size: 24px; }
+
+html.android-kiosk.portrait-kiosk .cart-drawer > header { min-height: 122px; grid-template-columns: 78px 1fr 78px; padding: 22px 38px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > header > span,
+html.android-kiosk.portrait-kiosk .icon-button { width: 72px; height: 72px; border-radius: 22px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > header h2 { font-size: 36px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > header small { font-size: 16px; }
+html.android-kiosk.portrait-kiosk .empty-cart svg { width: 86px; height: 86px; }
+html.android-kiosk.portrait-kiosk .empty-cart h3 { font-size: 34px; }
+html.android-kiosk.portrait-kiosk .empty-cart p { font-size: 18px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > footer { min-height: 132px; padding: 20px 38px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > footer small { font-size: 13px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > footer b { font-size: 38px; }
+html.android-kiosk.portrait-kiosk .cart-drawer > footer span { font-size: 16px; }
