@@ -1,8 +1,17 @@
 package com.magiccoffee.kiosk;
 
 import com.getcapacitor.BridgeActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.webkit.WebView;
 
 public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        configureWebView();
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -15,6 +24,17 @@ public class MainActivity extends BridgeActivity {
         if (hasFocus) {
             hideSystemUi();
         }
+    }
+
+    private void configureWebView() {
+        WebView webView = getBridge().getWebView();
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setVerticalScrollBarEnabled(false);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.requestFocus();
     }
 
     private void hideSystemUi() {
