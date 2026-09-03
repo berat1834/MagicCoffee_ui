@@ -2012,26 +2012,45 @@ html.android-kiosk.portrait-kiosk .payment-processing {
   align-items: center !important;
   justify-content: center !important;
   color: #fffaf5 !important;
-  background: rgba(54, 27, 16, .82) !important;
+  background: rgba(42, 24, 15, .22) !important;
+  backdrop-filter: none !important;
   transform: none !important;
 }
 
 html.android-kiosk.portrait-kiosk .payment-processing {
-  gap: 28px;
+  left: 50% !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 520px;
+  height: auto;
+  min-height: 330px;
+  padding: 46px 42px;
+  border: 1px solid rgba(111, 63, 36, .14);
+  border-radius: 36px;
+  display: flex !important;
+  gap: 22px;
+  color: var(--coffee-deep) !important;
+  background: rgba(255, 250, 245, .96) !important;
+  box-shadow: 0 28px 70px rgba(54, 27, 16, .22);
+  transform: translate(-50%, -50%) !important;
 }
 
 html.android-kiosk.portrait-kiosk .payment-processing .spin {
-  width: 108px;
-  height: 108px;
-  border-width: 10px;
+  width: 88px;
+  height: 88px;
+  border-width: 8px;
+  border-color: rgba(111, 63, 36, .16);
+  border-top-color: var(--coffee);
 }
 
 html.android-kiosk.portrait-kiosk .payment-processing b {
-  font-size: 42px;
+  font-size: 34px;
 }
 
 html.android-kiosk.portrait-kiosk .payment-processing small {
-  font-size: 26px;
+  color: var(--muted);
+  font-size: 20px;
 }
 
 html.portrait-kiosk .success,
