@@ -1346,3 +1346,175 @@ html.android-kiosk.portrait-kiosk .cart-bar { font-size: 34px; }
 html.android-kiosk.portrait-kiosk .cart-bar--ready b,
 html.android-kiosk.portrait-kiosk .cart-bar b { font-size: 34px; }
 html.android-kiosk.portrait-kiosk .cart-bar--ready strong { font-size: 46px; }
+
+html.android-kiosk.portrait-kiosk .app-shell,
+html.android-kiosk.portrait-kiosk .intro,
+html.android-kiosk.portrait-kiosk .catalog,
+html.android-kiosk.portrait-kiosk .customizer,
+html.android-kiosk.portrait-kiosk .cart-drawer,
+html.android-kiosk.portrait-kiosk .payment,
+html.android-kiosk.portrait-kiosk .success {
+  height: var(--kiosk-height, 100vh);
+  min-height: var(--kiosk-height, 100vh);
+  max-height: var(--kiosk-height, 100vh);
+}
+
+html.android-kiosk.portrait-kiosk .cart-drawer > footer {
+  min-height: 158px;
+  padding: 22px 38px calc(22px + env(safe-area-inset-bottom, 0px));
+}
+
+html.android-kiosk.portrait-kiosk .cart-drawer > footer .primary-button {
+  min-height: 92px;
+  border-radius: 24px;
+  font-size: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .payment {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 24px;
+  padding: 44px 34px 34px;
+  overflow: hidden;
+}
+
+html.android-kiosk.portrait-kiosk .payment__methods,
+html.android-kiosk.portrait-kiosk .payment__summary {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  align-self: stretch;
+}
+
+html.android-kiosk.portrait-kiosk .payment__methods > header {
+  min-height: 82px;
+  margin-bottom: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .payment h1 {
+  font-size: 44px;
+  line-height: 1.05;
+}
+
+html.android-kiosk.portrait-kiosk .payment__methods > header p {
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-options {
+  gap: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-options button {
+  min-height: 250px;
+  border-radius: 28px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-options button > span {
+  width: 104px;
+  height: 104px;
+  margin-bottom: 24px;
+  border-radius: 28px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-options button svg {
+  width: 52px;
+  height: 52px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-options button b {
+  font-size: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .payment-options button small {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+html.android-kiosk.portrait-kiosk .payment__summary {
+  align-self: start;
+  padding: 30px;
+  border-radius: 34px;
+}
+
+html.android-kiosk.portrait-kiosk .amount {
+  padding: 36px 32px;
+  border-radius: 30px;
+}
+
+html.android-kiosk.portrait-kiosk .amount small {
+  font-size: 13px;
+}
+
+html.android-kiosk.portrait-kiosk .amount b {
+  font-size: 58px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card {
+  margin-top: 22px;
+  padding: 24px;
+  border-radius: 26px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card > header {
+  font-size: 20px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card > header span {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card__lines {
+  max-height: 260px;
+  margin: 18px 0;
+}
+
+html.android-kiosk.portrait-kiosk .summary-line {
+  min-height: 96px;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-line__image {
+  width: 68px;
+  height: 68px;
+  flex-basis: 68px;
+  border-radius: 16px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card__lines b {
+  font-size: 14px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card__lines small,
+html.android-kiosk.portrait-kiosk .summary-card__lines strong {
+  font-size: 13px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-total {
+  padding: 20px 0;
+  font-size: 20px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-total b {
+  padding: 8px 14px;
+}
+
+html.android-kiosk.portrait-kiosk .order-type-mini {
+  margin: 18px 0;
+  gap: 10px;
+  font-size: 17px;
+}
+
+html.android-kiosk.portrait-kiosk .order-type-mini svg {
+  width: 24px;
+  height: 24px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-card > .primary-button {
+  min-height: 92px;
+  border-radius: 24px;
+  font-size: 24px;
+}
