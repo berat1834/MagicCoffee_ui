@@ -1981,3 +1981,15 @@ html.android-kiosk.portrait-kiosk .categories button:not(:last-child) {
 html.android-kiosk.portrait-kiosk .categories button:not(:last-child) {
   margin-right: 24px !important;
 }
+
+html.portrait-kiosk .cart-bar__icon {
+  margin-right: 10px;
+}
+
+html.android-kiosk.portrait-kiosk .cart-bar {
+  gap: 34px !important;
+}
+
+html.android-kiosk.portrait-kiosk .cart-bar__icon {
+  margin-right: 24px;
+}
