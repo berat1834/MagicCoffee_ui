@@ -1744,3 +1744,117 @@ html.portrait-kiosk .section-heading > span {
 html.android-kiosk.portrait-kiosk .section-heading > span {
   margin-left: 28px;
 }
+
+.categories-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.categories-wrap__hint {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 5px;
+  border-radius: 999px;
+  color: #fffaf5;
+  background: rgba(91, 50, 31, .92);
+  box-shadow: -10px 0 18px rgba(255,255,255,.95);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+html.portrait-kiosk .categories,
+html.android-kiosk.portrait-kiosk .categories {
+  display: flex;
+  grid-template-columns: none;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: 100%;
+  padding: 7px 40px 2px 0;
+  scrollbar-width: none;
+}
+
+html.portrait-kiosk .categories button,
+html.android-kiosk.portrait-kiosk .categories button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 104px;
+}
+
+html.android-kiosk.portrait-kiosk .categories {
+  gap: 14px;
+  padding-right: 70px;
+}
+
+html.android-kiosk.portrait-kiosk .categories button {
+  min-width: 186px;
+}
+
+html.android-kiosk.portrait-kiosk .categories-wrap__hint {
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  right: 2px;
+}
+
+html.portrait-kiosk .header-cart,
+html.android-kiosk.portrait-kiosk .header-cart {
+  gap: 10px;
+}
+
+html.android-kiosk.portrait-kiosk .header-cart {
+  gap: 16px;
+  padding-left: 12px;
+}
+
+html.portrait-kiosk .section-heading > span,
+html.android-kiosk.portrait-kiosk .section-heading > span {
+  margin-left: 22px;
+}
+
+html.android-kiosk.portrait-kiosk .section-heading > span {
+  margin-left: 34px;
+}
+
+html.portrait-kiosk .products,
+html.android-kiosk.portrait-kiosk .products {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+html.portrait-kiosk .catalog,
+html.android-kiosk.portrait-kiosk .catalog,
+html.portrait-kiosk .category-menu,
+html.android-kiosk.portrait-kiosk .category-menu {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+html.portrait-kiosk .product-grid,
+html.android-kiosk.portrait-kiosk .product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+
+html.portrait-kiosk .product-card,
+html.android-kiosk.portrait-kiosk .product-card {
+  width: 100%;
+  min-width: 0;
+}
+
+html.portrait-kiosk .product-card__visual img,
+html.android-kiosk.portrait-kiosk .product-card__visual img {
+  object-fit: contain;
+  background: linear-gradient(145deg, #f7dfbd, #fff2dc);
+}
