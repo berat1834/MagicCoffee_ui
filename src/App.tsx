@@ -184,12 +184,23 @@ function ProductCard({ product, quantity, onClick }: { product: Product; quantit
 function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog; cart: CartLine[]; onProduct: (product: Product) => void; onCart: () => void }) {
   const { t } = useKioskLanguage();
   const [activeCategory, setActiveCategory] = useState('all');
+  const categoriesRef = useRef<HTMLElement>(null);
   const productsRef = useRef<HTMLElement>(null);
   const lastPointerHandledRef = useRef(0);
   const visibleCategories = activeCategory === 'all' ? catalog.categories : catalog.categories.filter((item) => item.id === activeCategory);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const selectCategory = (categoryId: string) => { setActiveCategory(categoryId); productsRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const revealMoreCategories = () => {
+    const categories = categoriesRef.current;
+    if (!categories) return;
+    const maxScroll = Math.max(0, categories.scrollWidth - categories.clientWidth);
+    const reachedEnd = categories.scrollLeft >= maxScroll - 2;
+    categories.scrollTo({
+      left: reachedEnd ? 0 : Math.min(maxScroll, categories.scrollLeft + categories.clientWidth * 0.75),
+      behavior: 'smooth',
+    });
+  };
   useEffect(() => {
     const handleNativePress = (event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -218,7 +229,7 @@ function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog;
   }, [catalog.products, onProduct]);
   return <main className="catalog page-enter">
     <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
-    <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap"><nav className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav><ArrowRight className="categories-wrap__hint" aria-hidden="true" /></div></div>
+    <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap"><nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav><button type="button" className="categories-wrap__hint" onClick={revealMoreCategories} aria-label={t('catalog.moreCategories')}><ArrowRight /></button></div></div>
     <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
       return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} {t(categoryProducts.length === 1 ? 'catalog.product' : 'catalog.products')}</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;
@@ -299,7 +310,7 @@ function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }:
   return <main className="cart-drawer page-enter">
     <header><span><ShoppingBag /></span><div><h2>{t('cart.myCart')}</h2><small>{t('cart.lineCount', { count: cart.length })}</small></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button></header>
     <div className="cart-drawer__items">{!cart.length && <div className="empty-cart"><ShoppingBag /><h3>{t('cart.emptyLong')}</h3><p>{t('cart.emptyHint')}</p></div>}{cart.map((line) => <article className="cart-line" key={line.key}><div className="cart-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{line.product.emoji || '☕'}</span>}</div><div className="cart-line__main"><small>MAGIC COFFEE</small><h3>{line.product.name}</h3><p>{Object.values(line.selection?.choices ?? {}).flat().length ? t('cart.customized') : t('cart.standard')}</p><div><button onClick={() => onQuantity(line.key, -1)}><Minus /></button><b>{line.quantity}</b><button className="plus" onClick={() => onQuantity(line.key, 1)}><Plus /></button>{hasActiveCustomization(line.product) && <button className="edit" onClick={() => onEdit(line)}>{t('cart.edit')}</button>}<button className="delete" onClick={() => onDelete(line.key)}><Trash2 /> {t('cart.delete')}</button></div></div><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div>
-    <footer><div><small>{t('cart.total')}</small><b>{money(total)}</b><span>{cart.reduce((sum, line) => sum + line.quantity, 0)} {t('cart.items')}</span></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>{t('cart.checkout')} <ArrowRight /></button></footer>
+    <footer><div><small>{t('cart.total')}</small><b>{money(total)}</b><span>{cart.reduce((sum, line) => sum + line.quantity, 0)} {t('cart.items')}</span></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>{t('cart.checkout')}</button></footer>
   </main>;
 }
 
