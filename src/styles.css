@@ -1876,26 +1876,26 @@ html.android-kiosk.portrait-kiosk .intro__copy {
 }
 
 html.android-kiosk.portrait-kiosk .category-menu__label small {
-  font-size: 15px;
+  font-size: 18px;
   letter-spacing: .16em;
 }
 
 html.android-kiosk.portrait-kiosk .category-menu__label b {
-  margin-top: 5px;
-  font-size: 18px;
+  margin-top: 6px;
+  font-size: 22px;
 }
 
 html.android-kiosk.portrait-kiosk .categories {
-  gap: 18px;
+  gap: 22px;
   padding-top: 10px;
   padding-right: 72px;
 }
 
 html.android-kiosk.portrait-kiosk .categories button {
-  min-width: 154px;
-  min-height: 62px;
-  padding: 8px 13px;
-  border-radius: 15px;
-  font-size: 12.5px;
+  min-width: 136px;
+  min-height: 54px;
+  padding: 7px 11px;
+  border-radius: 13px;
+  font-size: 11px;
   line-height: 1.12;
 }
