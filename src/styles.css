@@ -38,15 +38,15 @@ html.portrait-kiosk #root {
 
 html.portrait-kiosk .app-shell {
   width: var(--kiosk-width, min(430px, 100vw));
-  height: var(--kiosk-height);
-  min-height: var(--kiosk-height);
+  height: var(--kiosk-height, 100vh);
+  min-height: var(--kiosk-height, 100vh);
   margin: 0 auto;
   overflow: hidden;
 }
 
 html.portrait-kiosk .catalog,
 html.portrait-kiosk .payment {
-  height: var(--kiosk-height);
+  height: 100%;
 }
 
 html.portrait-kiosk .catalog {
@@ -1101,6 +1101,30 @@ html.android-kiosk .customizer__hero img,
 html.android-kiosk .cart-line__image img {
   -webkit-user-drag: none;
   user-select: none;
+}
+
+html.android-kiosk,
+html.android-kiosk body,
+html.android-kiosk #root,
+html.android-kiosk .app-shell,
+html.android-kiosk .intro,
+html.android-kiosk .catalog,
+html.android-kiosk .customizer,
+html.android-kiosk .cart-drawer {
+  height: 100%;
+  min-height: 100%;
+}
+
+html.android-kiosk.portrait-kiosk .app-shell,
+html.android-kiosk.portrait-kiosk .intro,
+html.android-kiosk.portrait-kiosk .catalog,
+html.android-kiosk.portrait-kiosk .customizer,
+html.android-kiosk.portrait-kiosk .cart-drawer,
+html.android-kiosk.portrait-kiosk .payment,
+html.android-kiosk.portrait-kiosk .success {
+  height: calc(var(--kiosk-height, 100vh) - 56px);
+  min-height: calc(var(--kiosk-height, 100vh) - 56px);
+  max-height: calc(var(--kiosk-height, 100vh) - 56px);
 }
 
 html.portrait-kiosk .payment {
