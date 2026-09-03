@@ -1345,11 +1345,15 @@ public class UsbPrinterPlugin extends Plugin {
   }
 
   private String receiptDate(String createdAt) {
-    return new java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.US).format(receiptTimestamp(createdAt));
+    java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.US);
+    formatter.setTimeZone(java.util.TimeZone.getTimeZone("Europe/Istanbul"));
+    return formatter.format(receiptTimestamp(createdAt));
   }
 
   private String receiptTime(String createdAt) {
-    return new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(receiptTimestamp(createdAt));
+    java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US);
+    formatter.setTimeZone(java.util.TimeZone.getTimeZone("Europe/Istanbul"));
+    return formatter.format(receiptTimestamp(createdAt));
   }
 
   private String moneyText(double value, String currency) {
