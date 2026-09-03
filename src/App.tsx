@@ -4,6 +4,50 @@ import { assetUrl, fetchCatalog, submitOrder } from './api';
 import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen, Selection } from './types';
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
+const AUDIO_BASE = '/audio/kiosk/';
+
+function useKioskAudio(enabled: boolean) {
+  const current = useRef<HTMLAudioElement | null>(null);
+  const queue = useRef(Promise.resolve());
+
+  const stop = useCallback(() => {
+    current.current?.pause();
+    if (current.current) current.current.currentTime = 0;
+    current.current = null;
+    queue.current = Promise.resolve();
+  }, []);
+
+  const play = useCallback((file: string) => {
+    if (!enabled) return Promise.resolve();
+    const audio = new Audio(`${AUDIO_BASE}${file}`);
+    current.current?.pause();
+    current.current = audio;
+    return audio.play().catch(() => undefined);
+  }, [enabled]);
+
+  const playSequence = useCallback((files: string[]) => {
+    if (!enabled) return;
+    queue.current = queue.current.then(async () => {
+      for (const file of files) {
+        if (!enabled) return;
+        await new Promise<void>((resolve) => {
+          const audio = new Audio(`${AUDIO_BASE}${file}`);
+          current.current?.pause();
+          current.current = audio;
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+          audio.play().catch(() => resolve());
+        });
+      }
+    });
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) stop();
+  }, [enabled, stop]);
+
+  return { play, playSequence, stop };
+}
 
 function preloadCatalogImages(catalog: Catalog) {
   const urls = new Set(catalog.products.map((product) => assetUrl(product.image)).filter(Boolean));
@@ -92,12 +136,11 @@ function Intro({ onStart, loading }: { onStart: () => void; loading: boolean }) 
   </button>;
 }
 
-function OrderType({ onContinue }: { onContinue: (type: Fulfillment) => void }) {
-  const [soundOn, setSoundOn] = useState(true);
+function OrderType({ soundOn, onToggleSound, onContinue }: { soundOn: boolean; onToggleSound: () => void; onContinue: (type: Fulfillment) => void }) {
   return <main className="order-type page-enter">
     <div className="order-type__actions">
       <button className="utility-button"><span><Languages /></span><small>Dil seçimi</small><b>Türkçe</b></button>
-      <button className="utility-button" onClick={() => setSoundOn((value) => !value)}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>Kiosk sesi</small><b>{soundOn ? 'Açık' : 'Kapalı'}</b></button>
+      <button className="utility-button" onClick={onToggleSound}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>Kiosk sesi</small><b>{soundOn ? 'Açık' : 'Kapalı'}</b></button>
     </div>
     <section className="order-type__content">
       <h1>Siparişinizi nasıl almak istersiniz?</h1><p>Kahvenizi mağazada içebilir veya paket alabilirsiniz.</p>
@@ -237,7 +280,7 @@ function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }:
   </main>;
 }
 
-function Payment({ cart, fulfillment, submitError, onBack, onEdit, onSubmitError, onSuccess }: { cart: CartLine[]; fulfillment: Fulfillment; submitError: string; onBack: () => void; onEdit: (line: CartLine) => void; onSubmitError: (message: string) => void; onSuccess: (orderNumber: string) => void }) {
+function Payment({ cart, fulfillment, submitError, onBack, onEdit, onBeginPayment, onSubmitError, onSuccess }: { cart: CartLine[]; fulfillment: Fulfillment; submitError: string; onBack: () => void; onEdit: (line: CartLine) => void; onBeginPayment: () => void; onSubmitError: (message: string) => void; onSuccess: (orderNumber: string) => void }) {
   const [method, setMethod] = useState<'card' | 'meal-card' | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -247,6 +290,7 @@ function Payment({ cart, fulfillment, submitError, onBack, onEdit, onSubmitError
     if (!method || submitting) return;
     setError('');
     setSubmitting(true);
+    onBeginPayment();
     try {
       const order = await submitOrder({ fulfillment, paymentMethod: method, total, lines: cart });
       onSuccess(order.number);
@@ -279,6 +323,8 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [startPending, setStartPending] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+  const kioskAudio = useKioskAudio(soundOn);
   const loadCatalog = useCallback(() => {
     setCatalogError('');
     setCatalogLoading(true);
@@ -310,11 +356,13 @@ export default function App() {
   useEffect(() => {
     if (startPending && catalog) {
       setStartPending(false);
+      kioskAudio.play('welcome.mp3');
       setScreen('order-type');
     }
-  }, [catalog, startPending]);
+  }, [catalog, kioskAudio, startPending]);
   const startOrder = () => {
     if (catalog) {
+      kioskAudio.play('welcome.mp3');
       setScreen('order-type');
       return;
     }
@@ -376,12 +424,12 @@ export default function App() {
   const restart = () => { setCart([]); setOrderNumber(''); setPaymentError(''); setCartOpen(false); setNotice(''); setScreen('intro'); loadCatalog(); };
   return <div className="app-shell kiosk-no-focus-ring">
     {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading} />}
-    {screen === 'order-type' && <OrderType onContinue={(type) => { setFulfillment(type); setScreen('catalog'); }} />}
+    {screen === 'order-type' && <OrderType soundOn={soundOn} onToggleSound={() => setSoundOn((value) => !value)} onContinue={(type) => { kioskAudio.stop(); kioskAudio.play('product-selection-prompt.mp3'); setFulfillment(type); setScreen('catalog'); }} />}
     {notice && <div className="stock-toast">{notice}</div>}
     {customizing && <Customizer product={customizing} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
-    {!customizing && cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(false); }} onCheckout={() => { setCartOpen(false); setScreen('payment'); }} />}
+    {!customizing && cartOpen && <CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(false); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(false); setScreen('payment'); }} />}
     {!customizing && !cartOpen && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onCart={() => setCartOpen(true)} />}
-    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} submitError={paymentError} onBack={() => { setPaymentError(''); setScreen('catalog'); }} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onSubmitError={(message) => { setPaymentError(message); setScreen('payment'); }} onSuccess={(number) => { setOrderNumber(number); setCart([]); setScreen('success'); }} />}
+    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} submitError={paymentError} onBack={() => { setPaymentError(''); setScreen('catalog'); }} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onSubmitError={(message) => { kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3']); setPaymentError(message); setScreen('payment'); }} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setCart([]); setScreen('success'); }} />}
     {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} onRestart={restart} />}
     {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>Menüye ulaşamadık</h2><p>Magic Coffee API çalışıyor mu kontrol edip yeniden deneyin.</p><button className="primary-button" onClick={loadCatalog}>Tekrar Dene</button></div>}
     {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>Kahve menüsü hazırlanıyor...</p></div>}
