@@ -2018,22 +2018,34 @@ html.android-kiosk.portrait-kiosk .payment-processing {
 }
 
 html.android-kiosk.portrait-kiosk .payment-processing {
-  left: 50% !important;
-  top: 50% !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: 520px;
-  height: auto;
-  min-height: 330px;
-  padding: 46px 42px;
-  border: 1px solid rgba(111, 63, 36, .14);
-  border-radius: 36px;
-  display: flex !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: var(--kiosk-height, 100vh) !important;
+  padding: 0;
   gap: 22px;
   color: var(--coffee-deep) !important;
-  background: rgba(255, 250, 245, .96) !important;
+  background: rgba(42, 24, 15, .22) !important;
+  transform: none !important;
+}
+
+html.android-kiosk.portrait-kiosk .payment-processing::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 520px;
+  height: 330px;
+  border: 1px solid rgba(111, 63, 36, .14);
+  border-radius: 36px;
+  background: rgba(255, 250, 245, .96);
   box-shadow: 0 28px 70px rgba(54, 27, 16, .22);
-  transform: translate(-50%, -50%) !important;
+  transform: translate(-50%, -50%);
+}
+
+html.android-kiosk.portrait-kiosk .payment-processing > * {
+  position: relative;
+  z-index: 1;
 }
 
 html.android-kiosk.portrait-kiosk .payment-processing .spin {
