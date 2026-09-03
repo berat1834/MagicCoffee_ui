@@ -1528,6 +1528,27 @@ html.android-kiosk.portrait-kiosk .summary-card > .primary-button {
 
 html.android-kiosk.portrait-kiosk .intro {
   overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(90,38,17,.04), rgba(70,24,10,.2)),
+    repeating-conic-gradient(from -14deg at 50% 8%, rgba(255,255,255,.12) 0 7deg, rgba(255,255,255,0) 7deg 18deg),
+    radial-gradient(circle at 50% 47%, #f4d6a8 0 31%, #c98955 56%, #5c2c17 100%);
+}
+
+html.android-kiosk.portrait-kiosk .intro::before {
+  display: block;
+  z-index: 1;
+  inset: -16% -22%;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255,255,255,.12), transparent 28%),
+    repeating-conic-gradient(from -14deg at 50% 12%, rgba(255,255,255,.14) 0 8deg, transparent 8deg 18deg);
+  opacity: 1;
+  mix-blend-mode: overlay;
+  transform: none;
+}
+
+html.android-kiosk.portrait-kiosk .intro__grain {
+  z-index: 2;
+  opacity: .24;
 }
 
 html.android-kiosk.portrait-kiosk .intro__header {
