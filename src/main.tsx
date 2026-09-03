@@ -29,10 +29,22 @@ function syncKioskViewport() {
   root.style.setProperty('--kiosk-height', `${viewportHeight}px`);
 }
 
+function clearKioskFocus() {
+  if (!document.documentElement.classList.contains('android-kiosk')) return;
+  window.setTimeout(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, 0);
+}
+
 syncKioskViewport();
 window.addEventListener('resize', syncKioskViewport);
 window.addEventListener('orientationchange', syncKioskViewport);
 window.visualViewport?.addEventListener('resize', syncKioskViewport);
+window.addEventListener('pointerup', clearKioskFocus, true);
+window.addEventListener('touchend', clearKioskFocus, true);
+window.addEventListener('click', clearKioskFocus, true);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1355,9 +1355,9 @@ html.android-kiosk.portrait-kiosk .customizer,
 html.android-kiosk.portrait-kiosk .cart-drawer,
 html.android-kiosk.portrait-kiosk .payment,
 html.android-kiosk.portrait-kiosk .success {
-  height: var(--kiosk-height, 100vh);
-  min-height: var(--kiosk-height, 100vh);
-  max-height: var(--kiosk-height, 100vh);
+  height: var(--kiosk-height, 100dvh);
+  min-height: var(--kiosk-height, 100dvh);
+  max-height: var(--kiosk-height, 100dvh);
 }
 
 html.android-kiosk.portrait-kiosk .cart-drawer > footer {
@@ -1632,15 +1632,23 @@ html.android-kiosk.portrait-kiosk .intro__touch svg {
 
 /* Magic Coffee Android Kiosk Specific Fixes */
 html.android-kiosk * {
+  outline: none !important;
+  -webkit-focus-ring-color: transparent;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 html.android-kiosk button:focus,
 html.android-kiosk button:focus-visible,
+html.android-kiosk button:focus-within,
+html.android-kiosk button:active,
 html.android-kiosk [role="button"]:focus,
-html.android-kiosk [role="button"]:focus-visible {
+html.android-kiosk [role="button"]:focus-visible,
+html.android-kiosk [role="button"]:focus-within,
+html.android-kiosk [role="button"]:active {
   outline: none !important;
   outline-offset: 0 !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 html.android-kiosk button,
 html.android-kiosk [role="button"],
@@ -1664,4 +1672,38 @@ html.android-kiosk .kiosk-no-focus-ring button:active,
 html.android-kiosk .order-type__grid button:hover,
 html.android-kiosk .order-type__grid button:active {
   transform: none !important;
+}
+
+.payment-processing {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: white;
+  background: rgba(51, 24, 15, .76);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.payment-processing .spin {
+  width: 72px;
+  height: 72px;
+  border: 7px solid rgba(255,255,255,.28);
+  border-top-color: white;
+  border-radius: 50%;
+}
+
+.payment-processing b {
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.payment-processing small {
+  font-size: 18px;
+  font-weight: 700;
+  opacity: .78;
 }

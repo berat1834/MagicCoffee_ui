@@ -1,14 +1,21 @@
 package com.magiccoffee.kiosk;
 
 import com.getcapacitor.BridgeActivity;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.WebView;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        configureWindow();
         configureWebView();
     }
 
@@ -37,8 +44,23 @@ public class MainActivity extends BridgeActivity {
         webView.requestFocus();
     }
 
+    private void configureWindow() {
+        Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false);
+        }
+    }
+
     private void hideSystemUi() {
-        getWindow().getDecorView().setSystemUiVisibility(
+        Window window = getWindow();
+        View decorView = window.getDecorView();
+        decorView.setSystemUiVisibility(
             android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 | android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
                 | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -46,5 +68,12 @@ public class MainActivity extends BridgeActivity {
                 | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = decorView.getWindowInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
     }
 }
