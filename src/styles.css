@@ -1960,5 +1960,24 @@ html.android-kiosk.portrait-kiosk .catalog__header .brand-mark {
 }
 
 html.android-kiosk.portrait-kiosk .catalog__header .brand-mark {
-  gap: 14px;
+  gap: 20px !important;
+}
+
+html.portrait-kiosk .catalog__header .brand-mark__star,
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark__star {
+  margin-right: 10px;
+}
+
+html.android-kiosk.portrait-kiosk .catalog__header .brand-mark__star {
+  margin-right: 18px;
+}
+
+/* Hard spacing for Android WebView when flex gap is visually collapsed */
+html.portrait-kiosk .categories button:not(:last-child),
+html.android-kiosk.portrait-kiosk .categories button:not(:last-child) {
+  margin-right: 10px !important;
+}
+
+html.android-kiosk.portrait-kiosk .categories button:not(:last-child) {
+  margin-right: 24px !important;
 }
