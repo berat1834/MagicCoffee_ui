@@ -257,7 +257,10 @@ export default function App() {
     fetchCatalog().then((nextCatalog) => {
       setCatalog(nextCatalog);
       preloadCatalogImages(nextCatalog);
-    }).catch((error: Error) => setCatalogError(error.message)).finally(() => setCatalogLoading(false));
+    }).catch((error: Error) => {
+      setCatalogError(error.message);
+      setStartPending(false);
+    }).finally(() => setCatalogLoading(false));
   };
   useEffect(loadCatalog, []);
   useEffect(() => {
@@ -276,7 +279,7 @@ export default function App() {
       setScreen('order-type');
       return;
     }
-    if (catalogError) loadCatalog();
+    if (catalogError || catalogLoading) loadCatalog();
     setNotice('Menu hazirlaniyor, lutfen bekleyin.');
     setStartPending(true);
     if (!catalogLoading) loadCatalog();
