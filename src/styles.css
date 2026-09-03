@@ -1993,3 +1993,11 @@ html.android-kiosk.portrait-kiosk .cart-bar {
 html.android-kiosk.portrait-kiosk .cart-bar__icon {
   margin-right: 24px;
 }
+
+html.portrait-kiosk .cart-line__main > div button.edit {
+  margin-right: 8px;
+}
+
+html.android-kiosk.portrait-kiosk .cart-line__main > div button.edit {
+  margin-right: 18px;
+}
