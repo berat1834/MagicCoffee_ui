@@ -23,14 +23,19 @@ function syncKioskViewport() {
     root.style.removeProperty('--kiosk-scale');
     root.style.removeProperty('--kiosk-width');
     root.style.removeProperty('--kiosk-height');
+    root.style.removeProperty('--logical-kiosk-scale');
+    root.style.removeProperty('--logical-kiosk-height');
     return;
   }
 
   const scale = usesLargeKioskLayout ? 1 : window.innerWidth / logicalWidth;
+  const logicalScale = window.innerWidth / logicalWidth;
   root.classList.add('portrait-kiosk');
   root.style.setProperty('--kiosk-scale', String(scale));
   root.style.setProperty('--kiosk-width', `${usesLargeKioskLayout ? window.innerWidth : logicalWidth}px`);
   root.style.setProperty('--kiosk-height', `${viewportHeight / scale}px`);
+  root.style.setProperty('--logical-kiosk-scale', String(logicalScale));
+  root.style.setProperty('--logical-kiosk-height', `${viewportHeight / logicalScale}px`);
 }
 
 function clearKioskFocus() {
