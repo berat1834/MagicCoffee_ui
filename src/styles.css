@@ -2949,3 +2949,36 @@ html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div butto
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
   border-bottom: 3px solid var(--line);
 }
+
+/* Keep active customization choices clear across every product step. */
+html.portrait-kiosk .steps button.active i {
+  color: #fff !important;
+}
+
+html.portrait-kiosk .option-list button.selected {
+  border: 2px solid #8b542f;
+  background: #f8e5d6;
+  box-shadow:
+    0 7px 18px rgba(91, 50, 31, .18),
+    inset 0 0 0 1px rgba(255, 255, 255, .55);
+}
+html.portrait-kiosk .option-list button.selected > span {
+  color: #fff;
+  border-color: #7a4328;
+  background: #8b542f;
+  box-shadow: 0 4px 10px rgba(91, 50, 31, .22);
+}
+html.portrait-kiosk .option-list button.selected b {
+  color: #5b321f;
+}
+html.portrait-kiosk .option-list button.selected small {
+  color: #7a4328;
+  font-weight: 700;
+}
+
+html.android-kiosk.portrait-kiosk .option-list button.selected {
+  border-width: 5px;
+  box-shadow:
+    0 18px 45px rgba(91, 50, 31, .18),
+    inset 0 0 0 2px rgba(255, 255, 255, .55);
+}
