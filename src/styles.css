@@ -2483,6 +2483,10 @@ html.android-kiosk.portrait-kiosk .categories-wrap { display: block; }
 html.android-kiosk.portrait-kiosk .categories-wrap__hint { width: 42px; height: 42px; }
 html.android-kiosk.portrait-kiosk .categories-wrap__hint--prev { left: -34px; }
 html.android-kiosk.portrait-kiosk .categories-wrap__hint--next { right: -34px; }
+html.portrait-kiosk .categories-wrap__hint:active,
+html.android-kiosk.portrait-kiosk .categories-wrap__hint:active {
+  transform: translateY(-34%) !important;
+}
 html.android-kiosk.portrait-kiosk .categories { gap: 13px !important; padding: 18px 0 0; }
 html.android-kiosk.portrait-kiosk .categories button,
 html.android-kiosk.portrait-kiosk .categories button:not(:last-child) {
