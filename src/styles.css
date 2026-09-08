@@ -3463,6 +3463,12 @@ html.android-kiosk.portrait-kiosk .order-type-mini svg { margin-right: 6px; }
 html.android-kiosk.portrait-kiosk .language-picker__header { gap: 0; }
 html.android-kiosk.portrait-kiosk .language-picker__header > div { margin-left: 9px; }
 
+.cart-sheet-backdrop {
+  background: rgba(76, 40, 23, .68);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 /* Keep one visual system across phones, tablets, desktops and kiosk displays. */
 html:not(.portrait-kiosk),
 html:not(.portrait-kiosk) body,

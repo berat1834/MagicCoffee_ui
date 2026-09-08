@@ -6,6 +6,9 @@ const REQUEST_TIMEOUT_MS = 10000;
 
 async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  options?.signal?.addEventListener('abort', abortFromCaller, { once: true });
+  if (options?.signal?.aborted) controller.abort();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...options, signal: controller.signal, cache: 'no-store' });
@@ -16,6 +19,7 @@ async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = 
     throw error;
   } finally {
     window.clearTimeout(timeout);
+    options?.signal?.removeEventListener('abort', abortFromCaller);
   }
 }
 
@@ -54,9 +58,11 @@ export async function startPosPayment(args: {
   paymentMethod: 'card' | 'meal-card';
   amount: number;
   lines: CartLine[];
+  signal?: AbortSignal;
 }): Promise<PosPaymentResult> {
   const response = await fetchWithTimeout(apiUrl('/api/pos/payments'), {
     method: 'POST',
+    signal: args.signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       clientRequestId: args.clientRequestId,
@@ -78,8 +84,8 @@ export async function startPosPayment(args: {
   return response.json() as Promise<PosPaymentResult>;
 }
 
-export async function pollPosPayment(transactionId: string): Promise<PosPaymentResult> {
-  const response = await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}`), undefined, 25000);
+export async function pollPosPayment(transactionId: string, signal?: AbortSignal): Promise<PosPaymentResult> {
+  const response = await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}`), { signal }, 25000);
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body.detail || 'POS ödeme durumu alınamadı.');

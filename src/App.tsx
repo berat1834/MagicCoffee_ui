@@ -345,6 +345,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
   const transactionRef = useRef('');
   const paymentReferenceRef = useRef('');
   const paidResultRef = useRef<PosPaymentStatus | null>(null);
+  const requestControllerRef = useRef<AbortController | null>(null);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
 
@@ -378,14 +379,15 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
     });
   };
 
-  const checkUntilComplete = async (initial: Awaited<ReturnType<typeof startPosPayment>>) => {
+  const checkUntilComplete = async (initial: Awaited<ReturnType<typeof startPosPayment>>, signal: AbortSignal) => {
     let result = initial;
     let temporaryErrors = 0;
     for (let attempt = 0; attempt < 60; attempt += 1) {
       if (POS_SUCCESS.has(result.status) || POS_FAILURE.has(result.status)) return result;
       await wait(2000);
+      if (signal.aborted) throw new DOMException('Payment request aborted', 'AbortError');
       try {
-        result = await pollPosPayment(transactionRef.current);
+        result = await pollPosPayment(transactionRef.current, signal);
         temporaryErrors = 0;
       } catch (pollError) {
         temporaryErrors += 1;
@@ -398,6 +400,8 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
   const complete = async (selectedMethod: 'card' | 'meal-card') => {
     if (processingRef.current) return;
     processingRef.current = true;
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     setMethod(selectedMethod);
     setError('');
     try {
@@ -409,13 +413,15 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
       onBeginPayment();
       if (!paymentRequestIdRef.current) paymentRequestIdRef.current = uniqueRequestId('payment');
       const started = transactionRef.current
-        ? await pollPosPayment(transactionRef.current)
-        : await startPosPayment({ clientRequestId: paymentRequestIdRef.current, paymentMethod: selectedMethod, amount: total, lines: cart });
+        ? await pollPosPayment(transactionRef.current, controller.signal)
+        : await startPosPayment({ clientRequestId: paymentRequestIdRef.current, paymentMethod: selectedMethod, amount: total, lines: cart, signal: controller.signal });
+      if (controller.signal.aborted) return;
       transactionRef.current = started.id || started.externalId || transactionRef.current;
       paymentReferenceRef.current = started.paymentReference || started.externalId || paymentReferenceRef.current;
       if (!transactionRef.current || !paymentReferenceRef.current) throw new Error(t('payment.posMissingTransaction'));
       setPhase('waiting');
-      const result = await checkUntilComplete(started);
+      const result = await checkUntilComplete(started, controller.signal);
+      if (controller.signal.aborted) return;
       if (POS_FAILURE.has(result.status)) {
         transactionRef.current = '';
         paymentReferenceRef.current = '';
@@ -425,18 +431,27 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
       paidResultRef.current = result.status;
       await finishPaidOrder(selectedMethod);
     } catch (err) {
+      if (controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) return;
       if (!transactionRef.current && !paidResultRef.current) paymentRequestIdRef.current = '';
       setError(err instanceof Error ? err.message : t('payment.genericError'));
       setPhase('error');
       onPaymentFailed();
     } finally {
+      if (requestControllerRef.current === controller) requestControllerRef.current = null;
       processingRef.current = false;
     }
   };
 
   const busy = phase === 'starting' || phase === 'waiting' || phase === 'saving';
+  const backDisabled = phase === 'saving' || Boolean(paidResultRef.current);
+  const handleBack = () => {
+    if (backDisabled) return;
+    requestControllerRef.current?.abort();
+    processingRef.current = false;
+    onBack();
+  };
   const statusText = phase === 'starting' ? t('payment.sendingToPos') : phase === 'waiting' ? t('payment.waitingForCard') : phase === 'saving' ? t('payment.savingOrder') : '';
-  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={onBack} disabled={busy || Boolean(paidResultRef.current)} aria-label={t('common.back')}><ArrowLeft /></button><div><h1>{t('payment.title')}</h1><p>{t('payment.hint')}</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} disabled={busy} onClick={() => complete('card')}><span><CreditCard /></span><b>{t('payment.card')}</b><small>{t('payment.cardHint')}</small></button><button className={method === 'meal-card' ? 'selected' : ''} disabled={busy} onClick={() => complete('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>{t('payment.mealCard')}</b><small>{t('payment.mealCardHint')}</small></button></div>{statusText && <div className="payment__status" role="status" aria-live="polite"><span className="spin" />{statusText}</div>}{error && <div className="payment__error">{error}<button onClick={() => method && complete(method)}>{t('payment.retryPos')}</button></div>}</section><aside className="payment__summary"><div className="amount"><small>{t('payment.amount')}</small><b>{money(total)}</b></div><div className="summary-card"><header><b>{t('payment.summary')}</b><span>{itemCount} {t(itemCount === 1 ? 'cart.item' : 'cart.items')}</span></header><div className="summary-card__lines">{cart.map((line) => <div key={line.key}><span><b>{line.product.name}</b><small>{line.quantity} {t('cart.quantityUnit')}</small></span><strong>{money(line.unitPrice * line.quantity)}</strong></div>)}</div><div className="summary-total"><span>{t('payment.total')}</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? t('orderType.restaurant') : t('orderType.package')}</p></div></aside></main>;
+  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={handleBack} disabled={backDisabled} aria-label={t('common.back')}><ArrowLeft /></button><div><h1>{t('payment.title')}</h1><p>{t('payment.hint')}</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} disabled={busy} onClick={() => complete('card')}><span><CreditCard /></span><b>{t('payment.card')}</b><small>{t('payment.cardHint')}</small></button><button className={method === 'meal-card' ? 'selected' : ''} disabled={busy} onClick={() => complete('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>{t('payment.mealCard')}</b><small>{t('payment.mealCardHint')}</small></button></div>{statusText && <div className="payment__status" role="status" aria-live="polite"><span className="spin" />{statusText}</div>}{error && <div className="payment__error">{error}<button onClick={() => method && complete(method)}>{t('payment.retryPos')}</button></div>}</section><aside className="payment__summary"><div className="amount"><small>{t('payment.amount')}</small><b>{money(total)}</b></div><div className="summary-card"><header><b>{t('payment.summary')}</b><span>{itemCount} {t(itemCount === 1 ? 'cart.item' : 'cart.items')}</span></header><div className="summary-card__lines">{cart.map((line) => <div key={line.key}><span><b>{line.product.name}</b><small>{line.quantity} {t('cart.quantityUnit')}</small></span><strong>{money(line.unitPrice * line.quantity)}</strong></div>)}</div><div className="summary-total"><span>{t('payment.total')}</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? t('orderType.restaurant') : t('orderType.package')}</p></div></aside></main>;
 }
 
 function Success({ orderNumber, receiptStatus, onRestart }: { orderNumber: string; receiptStatus: ReceiptPrintStatus | 'printing'; onRestart: () => void }) {
@@ -594,7 +609,7 @@ export default function App() {
     {!customizing && cartOpen !== 'full' && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onHeaderCart={() => setCartOpen('full')} onBottomCart={() => setCartOpen('sheet')} />}
     {!customizing && cartOpen === 'full' && <CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} />}
     {!customizing && cartOpen === 'sheet' && <div className="cart-sheet-layer"><button type="button" className="cart-sheet-backdrop" onClick={() => setCartOpen(null)} aria-label={t('common.close')} /><CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} /></div>}
-    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => setScreen('catalog')} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onReceiptStatus={setReceiptStatus} />}
+    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => { kioskAudio.stop(); setScreen('catalog'); setCartOpen('full'); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onReceiptStatus={setReceiptStatus} />}
     {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} receiptStatus={receiptStatus} onRestart={restart} />}
     {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>{t('loading.catalogError')}</h2><p>{t('loading.catalogErrorHint')}</p><button className="primary-button" onClick={loadCatalog}>{t('common.retry')}</button></div>}
     {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>{t('loading.catalog')}</p></div>}
