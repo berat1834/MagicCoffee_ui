@@ -3480,6 +3480,31 @@ html:not(.portrait-kiosk) .app-shell {
   min-height: var(--viewport-height, 100vh);
 }
 
+/* Keep compact web portrait controls aligned with the kiosk reference. */
+html.portrait-kiosk:not(.android-kiosk) .language-control {
+  position: relative;
+  width: 150px;
+  height: 54px;
+  flex: 0 0 150px;
+}
+
+html.portrait-kiosk:not(.android-kiosk) .language-control > .utility-button--language {
+  width: 100%;
+}
+
+html.portrait-kiosk:not(.android-kiosk) .app-shell > .cart-drawer .cart-line__main > div button.edit {
+  margin-right: 0 !important;
+}
+
+html.portrait-kiosk:not(.android-kiosk) .payment {
+  gap: 38px;
+  padding-top: 36px;
+}
+
+html.portrait-kiosk:not(.android-kiosk) .payment__methods > header {
+  margin-bottom: 24px;
+}
+
 html.portrait-kiosk.short-viewport .order-type__content {
   padding-top: clamp(70px, 18vh, 130px);
 }
