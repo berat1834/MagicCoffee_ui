@@ -81,47 +81,6 @@ function preloadCatalogImages(catalog: Catalog) {
   }
 }
 
-function usePress(action: () => void) {
-  const lastPress = useRef(0);
-  const startPoint = useRef<{ x: number; y: number } | null>(null);
-  const readTouch = (event: { changedTouches: { item: (index: number) => { clientX: number; clientY: number } | null } }) => {
-    const touch = event.changedTouches.item(0);
-    return touch ? { x: touch.clientX, y: touch.clientY } : null;
-  };
-  const run = () => {
-    const now = Date.now();
-    if (now - lastPress.current < 300) return;
-    lastPress.current = now;
-    action();
-  };
-  return {
-    onPointerDown: (event: { clientX: number; clientY: number }) => {
-      startPoint.current = { x: event.clientX, y: event.clientY };
-    },
-    onPointerUp: (event: { clientX: number; clientY: number; preventDefault: () => void }) => {
-      const start = startPoint.current;
-      startPoint.current = null;
-      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) return;
-      event.preventDefault();
-      run();
-    },
-    onTouchStart: (event: { changedTouches: { item: (index: number) => { clientX: number; clientY: number } | null } }) => {
-      startPoint.current = readTouch(event);
-    },
-    onTouchEnd: (event: { changedTouches: { item: (index: number) => { clientX: number; clientY: number } | null }; preventDefault: () => void }) => {
-      const end = readTouch(event);
-      const start = startPoint.current;
-      startPoint.current = null;
-      if (start && end && Math.hypot(end.x - start.x, end.y - start.y) > 12) return;
-      event.preventDefault();
-      run();
-    },
-    onClick: () => {
-      run();
-    },
-  };
-}
-
 function productCartQuantity(cart: CartLine[], productId: string) {
   return cart.filter((line) => line.product.id === productId).reduce((sum, line) => sum + line.quantity, 0);
 }
@@ -142,8 +101,7 @@ function BrandMark({ light = false, compact = false }: { light?: boolean; compac
 
 function Intro({ onStart, loading }: { onStart: () => void; loading: boolean }) {
   const { t } = useKioskLanguage();
-  const press = usePress(onStart);
-  return <button type="button" className="intro" {...press} aria-label={t('intro.startAria')}>
+  return <button type="button" className="intro" onClick={onStart} aria-label={t('intro.startAria')}>
     <div className="intro__grain" />
     <header className="intro__header"><BrandMark light /></header>
     <img className="intro__burger intro__coffee-art" src="/images/products/cappuccino.png" alt="Magic Coffee Cappuccino" />
