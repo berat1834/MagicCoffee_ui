@@ -6,6 +6,7 @@ import './styles.css';
 
 function syncKioskViewport() {
   const root = document.documentElement;
+  const logicalWidth = 430;
   const viewportHeight = Math.floor(Math.min(
     window.innerHeight,
     window.visualViewport?.height ?? window.innerHeight,
@@ -19,13 +20,17 @@ function syncKioskViewport() {
 
   if (!isPortraitKiosk) {
     root.classList.remove('portrait-kiosk');
+    root.style.removeProperty('--kiosk-scale');
+    root.style.removeProperty('--kiosk-width');
     root.style.removeProperty('--kiosk-height');
     return;
   }
 
+  const scale = usesLargeKioskLayout ? 1 : window.innerWidth / logicalWidth;
   root.classList.add('portrait-kiosk');
-  root.style.setProperty('--kiosk-width', `${window.innerWidth}px`);
-  root.style.setProperty('--kiosk-height', `${viewportHeight}px`);
+  root.style.setProperty('--kiosk-scale', String(scale));
+  root.style.setProperty('--kiosk-width', `${usesLargeKioskLayout ? window.innerWidth : logicalWidth}px`);
+  root.style.setProperty('--kiosk-height', `${viewportHeight / scale}px`);
 }
 
 function clearKioskFocus() {
