@@ -2869,3 +2869,24 @@ html.android-kiosk.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__ico
   border-radius: 35px;
 }
 html.android-kiosk.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon svg { width: 60px; height: 60px; }
+
+/* Stronger Coffee accent dividers for catalog bars and cart header. */
+html.portrait-kiosk .catalog__header {
+  border-bottom: 4px solid #efb75c;
+}
+html.portrait-kiosk .cart-bar {
+  border-top: 4px solid #efb75c;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
+  border-bottom: 2px solid #dfaa63;
+}
+
+html.android-kiosk.portrait-kiosk .catalog__header {
+  border-bottom-width: 8px;
+}
+html.android-kiosk.portrait-kiosk .cart-bar {
+  border-top-width: 8px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
+  border-bottom-width: 5px;
+}
