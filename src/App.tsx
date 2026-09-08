@@ -139,7 +139,7 @@ function ProductCard({ product, quantity, onClick }: { product: Product; quantit
   </button>;
 }
 
-function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog; cart: CartLine[]; onProduct: (product: Product) => void; onCart: () => void }) {
+function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }: { catalog: Catalog; cart: CartLine[]; onProduct: (product: Product) => void; onHeaderCart: () => void; onBottomCart: () => void }) {
   const { t } = useKioskLanguage();
   const [activeCategory, setActiveCategory] = useState('all');
   const categoriesRef = useRef<HTMLElement>(null);
@@ -186,13 +186,13 @@ function CatalogScreen({ catalog, cart, onProduct, onCart }: { catalog: Catalog;
     };
   }, [catalog.products, onProduct]);
   return <main className="catalog page-enter">
-    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
+    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
     <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap"><nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav><button type="button" className="categories-wrap__hint" onClick={revealMoreCategories} aria-label={t('catalog.moreCategories')}><ArrowRight /></button></div></div>
     <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
       return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} {t(categoryProducts.length === 1 ? 'catalog.product' : 'catalog.products')}</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;
     })}</section>
-    <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart" onClick={onCart}><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>{t('cart.go')}</b><strong>{money(total)}</strong></> : <span>{t('cart.placeholder')}</span>}</button>
+    <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart" onClick={onBottomCart}><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>{t('cart.go')}</b><strong>{money(total)}</strong></> : <span>{t('cart.placeholder')}</span>}</button>
   </main>;
 }
 
@@ -395,7 +395,7 @@ export default function App() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customizing, setCustomizing] = useState<Product | null>(null);
   const [editing, setEditing] = useState<CartLine | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState<'full' | 'sheet' | null>(null);
   const [orderNumber, setOrderNumber] = useState('');
   const [receiptStatus, setReceiptStatus] = useState<ReceiptPrintStatus | 'printing'>('printing');
   const [notice, setNotice] = useState('');
@@ -518,7 +518,7 @@ export default function App() {
     setCart([]);
     setOrderNumber('');
     setReceiptStatus('printing');
-    setCartOpen(false);
+    setCartOpen(null);
     setNotice('');
     setLanguage('tr');
     setScreen('intro');
@@ -533,8 +533,9 @@ export default function App() {
     {screen === 'order-type' && <OrderType soundOn={soundOn} onToggleSound={() => setSoundOn((value) => !value)} onContinue={(type) => { kioskAudio.stop(); kioskAudio.play('product-selection-prompt.mp3'); setFulfillment(type); setScreen('catalog'); }} />}
     {notice && <div className="stock-toast">{notice}</div>}
     {customizing && <Customizer product={customizing} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
-    {!customizing && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onCart={() => setCartOpen(true)} />}
-    {!customizing && cartOpen && <div className="cart-sheet-layer"><button type="button" className="cart-sheet-backdrop" onClick={() => setCartOpen(false)} aria-label={t('common.close')} /><CartDrawer cart={cart} onClose={() => setCartOpen(false)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(false); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(false); setScreen('payment'); }} /></div>}
+    {!customizing && cartOpen !== 'full' && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onHeaderCart={() => setCartOpen('full')} onBottomCart={() => setCartOpen('sheet')} />}
+    {!customizing && cartOpen === 'full' && <CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} />}
+    {!customizing && cartOpen === 'sheet' && <div className="cart-sheet-layer"><button type="button" className="cart-sheet-backdrop" onClick={() => setCartOpen(null)} aria-label={t('common.close')} /><CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} /></div>}
     {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => setScreen('catalog')} onEdit={(line) => { setEditing(line); setCustomizing(line.product); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onReceiptStatus={setReceiptStatus} />}
     {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} receiptStatus={receiptStatus} onRestart={restart} />}
     {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>{t('loading.catalogError')}</h2><p>{t('loading.catalogErrorHint')}</p><button className="primary-button" onClick={loadCatalog}>{t('common.retry')}</button></div>}
