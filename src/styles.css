@@ -3100,7 +3100,13 @@ html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .cart-line__main > d
 html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .cart-line__main > div b { min-width: 45px; font-size: 28px; }
 html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .cart-line > strong { right: 25px; top: 25px; font-size: 28px; }
 html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .empty-cart { min-height: 653px; }
-html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .empty-cart > svg { width: 131px; height: 131px; }
+html.android-kiosk.portrait-kiosk .empty-cart > svg {
+  width: 131px;
+  height: 131px;
+  padding: 33px;
+  border-radius: 43px;
+  stroke-width: 5px;
+}
 html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .empty-cart h3 { margin: 35px 0 10px; font-size: 40px; }
 html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer .empty-cart p { font-size: 25px; }
 html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer > footer { min-height: 196px; padding: 25px 35px calc(25px + env(safe-area-inset-bottom, 0px)); gap: 30px; }
@@ -3111,18 +3117,19 @@ html.android-kiosk.portrait-kiosk .app-shell > .cart-drawer > footer .primary-bu
 
 html.android-kiosk.portrait-kiosk .payment {
   gap: 48px;
-  padding: 105px 30px 69px;
+  padding: 108px 30px 69px;
 }
-html.android-kiosk.portrait-kiosk .payment__methods > header { min-height: 0; margin-bottom: 43px; }
-html.android-kiosk.portrait-kiosk .payment__methods > header .icon-button { width: 107px; height: 107px; border-radius: 32px; }
-html.android-kiosk.portrait-kiosk .payment h1 { font-size: 78px; }
-html.android-kiosk.portrait-kiosk .payment__methods > header p { margin-top: 21px; font-size: 24px; }
-html.android-kiosk.portrait-kiosk .payment-options { gap: 43px; }
+html.android-kiosk.portrait-kiosk .payment__methods > header { min-height: 0; margin-bottom: 44px; }
+html.android-kiosk.portrait-kiosk .payment__methods > header .icon-button { width: 101px; height: 101px; border-radius: 35px; }
+html.android-kiosk.portrait-kiosk .payment__methods > header .icon-button svg { width: 50px; height: 50px; stroke-width: 5px; }
+html.android-kiosk.portrait-kiosk .payment h1 { font-size: 64px; line-height: 1.28; }
+html.android-kiosk.portrait-kiosk .payment__methods > header p { margin-top: 21px; font-size: 22.6px; }
+html.android-kiosk.portrait-kiosk .payment-options { gap: 40px; }
 html.android-kiosk.portrait-kiosk .payment-options button { min-height: 414px; border-radius: 50px; }
-html.android-kiosk.portrait-kiosk .payment-options button > span { width: 146px; height: 146px; margin-bottom: 32px; border-radius: 43px; }
-html.android-kiosk.portrait-kiosk .payment-options button svg { width: 73px; height: 73px; }
-html.android-kiosk.portrait-kiosk .payment-options button b { font-size: 33px; }
-html.android-kiosk.portrait-kiosk .payment-options button small { margin-top: 21px; font-size: 19px; }
+html.android-kiosk.portrait-kiosk .payment-options button > span { width: 146px; height: 146px; margin-bottom: 30px; border-radius: 43px; }
+html.android-kiosk.portrait-kiosk .payment-options button svg { width: 73px; height: 73px; stroke-width: 5px; }
+html.android-kiosk.portrait-kiosk .payment-options button b { font-size: 32.65px; }
+html.android-kiosk.portrait-kiosk .payment-options button small { margin-top: 20px; font-size: 17.6px; }
 html.android-kiosk.portrait-kiosk .payment__summary { margin-top: 97px; padding: 40px; border-radius: 63px; }
 html.android-kiosk.portrait-kiosk .amount { padding: 51px 48px; border-radius: 63px; }
 html.android-kiosk.portrait-kiosk .amount small { font-size: 21px; }
