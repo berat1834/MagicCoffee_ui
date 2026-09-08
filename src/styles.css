@@ -2890,3 +2890,39 @@ html.android-kiosk.portrait-kiosk .cart-bar {
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
   border-bottom-width: 5px;
 }
+
+/* Refine divider tones and scale the populated cart badge on native kiosks. */
+html.portrait-kiosk .catalog__header {
+  border-bottom-color: var(--yellow);
+}
+html.portrait-kiosk .cart-bar {
+  border-top-color: var(--yellow);
+}
+html.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
+  border-bottom: 1px solid rgba(42, 30, 24, .2);
+}
+
+html.portrait-kiosk .cart-bar__icon i {
+  top: -4px;
+  right: auto;
+  left: -4px;
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+}
+
+html.android-kiosk.portrait-kiosk .cart-bar--ready .cart-bar__icon svg {
+  width: 48px;
+  height: 60px;
+}
+html.android-kiosk.portrait-kiosk .cart-bar__icon i {
+  top: -10px;
+  right: auto;
+  left: -10px;
+  width: 50px;
+  height: 50px;
+  font-size: 23px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
+  border-bottom-width: 2px;
+}
