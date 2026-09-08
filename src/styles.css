@@ -2982,3 +2982,11 @@ html.android-kiosk.portrait-kiosk .option-list button.selected {
     0 18px 45px rgba(91, 50, 31, .18),
     inset 0 0 0 2px rgba(255, 255, 255, .55);
 }
+
+/* Preserve Burger's visible step-divider weight after native kiosk scaling. */
+html.android-kiosk.portrait-kiosk .steps {
+  border-bottom-width: 3px;
+}
+html.android-kiosk.portrait-kiosk .steps button {
+  border-bottom-width: 8px;
+}
