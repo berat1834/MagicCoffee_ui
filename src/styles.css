@@ -3122,7 +3122,7 @@ html.android-kiosk.portrait-kiosk .payment {
   width: 430px;
   height: var(--logical-kiosk-height);
   min-height: var(--logical-kiosk-height);
-  max-height: var(--logical-kiosk-height);
+  max-height: none;
   grid-template-columns: 1fr;
   grid-template-rows: none;
   align-content: normal;
@@ -3132,31 +3132,31 @@ html.android-kiosk.portrait-kiosk .payment {
   overflow-y: auto;
   zoom: var(--logical-kiosk-scale, 1);
 }
-html.android-kiosk.portrait-kiosk .payment__methods { height: 234.4px; min-height: 0; align-self: center; justify-self: center; }
-html.android-kiosk.portrait-kiosk .payment__methods > header { height: 51.4px; min-height: 0; margin-bottom: 18px; }
+html.android-kiosk.portrait-kiosk .payment__methods { height: auto; min-height: auto; align-self: center; justify-self: center; }
+html.android-kiosk.portrait-kiosk .payment__methods > header { height: auto; min-height: 0; margin-bottom: 18px; }
 html.android-kiosk.portrait-kiosk .payment__methods > header .icon-button { width: 40px; height: 40px; border-radius: 14px; }
 html.android-kiosk.portrait-kiosk .payment__methods > header .icon-button svg { width: 20px; height: 24px; stroke-width: 2px; }
 html.android-kiosk.portrait-kiosk .payment h1 { width: auto; white-space: nowrap; font-size: 27px; line-height: normal; letter-spacing: -.045em; }
-html.android-kiosk.portrait-kiosk .payment__methods > header p { margin-top: 8px; font-size: 9px; line-height: 10.75px; }
+html.android-kiosk.portrait-kiosk .payment__methods > header p { margin-top: 8px; font-size: 9px; line-height: normal; }
 html.android-kiosk.portrait-kiosk .payment-options { gap: 16px; }
 html.android-kiosk.portrait-kiosk .payment-options button { min-height: 165px; border-radius: 20px; }
 html.android-kiosk.portrait-kiosk .payment-options button > span { width: 58px; height: 58px; margin-bottom: 12px; border-radius: 17px; }
 html.android-kiosk.portrait-kiosk .payment-options button svg { width: 29px; height: 29px; stroke-width: 2px; }
 html.android-kiosk.portrait-kiosk .payment-options button b { font-size: 13px; }
 html.android-kiosk.portrait-kiosk .payment-options button small { margin-top: 8px; font-size: 7px; }
-html.android-kiosk.portrait-kiosk .payment__summary { height: 385.4px; min-height: 0; align-self: center; justify-self: center; margin-top: 0; padding: 16px; border-radius: 25px; transform: translateY(-13px); }
-html.android-kiosk.portrait-kiosk .amount { height: 111.7px; padding: 19px; border-bottom: 4px solid #d39a52; border-radius: 25px; }
-html.android-kiosk.portrait-kiosk .amount small { font-size: 8px; line-height: 9.6px; }
-html.android-kiosk.portrait-kiosk .amount b { margin-top: 8px; font-size: clamp(31px, 4vw, 52px); line-height: 52.1px; letter-spacing: -.05em; }
-html.android-kiosk.portrait-kiosk .summary-card { height: 227.7px; margin-top: 14px; padding: 17px; border-radius: 23px; }
-html.android-kiosk.portrait-kiosk .summary-card > header { height: 19.55px; font-size: 12px; }
+html.android-kiosk.portrait-kiosk .payment__summary { height: auto; min-height: auto; align-self: center; justify-self: center; margin-top: 0; padding: 16px; border-radius: 25px; transform: none; }
+html.android-kiosk.portrait-kiosk .amount { height: auto; padding: 19px; border-bottom: 4px solid #d39a52; border-radius: 25px; }
+html.android-kiosk.portrait-kiosk .amount small { font-size: 8px; line-height: normal; }
+html.android-kiosk.portrait-kiosk .amount b { margin-top: 8px; font-size: clamp(31px, 4vw, 52px); line-height: normal; letter-spacing: -.05em; }
+html.android-kiosk.portrait-kiosk .summary-card { height: auto; margin-top: 14px; padding: 17px; border-radius: 23px; }
+html.android-kiosk.portrait-kiosk .summary-card > header { height: auto; font-size: 12px; }
 html.android-kiosk.portrait-kiosk .summary-card > header span { padding: 5px 9px; font-size: 8px; }
 html.android-kiosk.portrait-kiosk .summary-card__lines { max-height: 150px; margin: 13px 0; }
 html.android-kiosk.portrait-kiosk .summary-card__lines > div { min-height: 45px; margin-bottom: 6px; padding: 8px 10px; border-radius: 11px; }
 html.android-kiosk.portrait-kiosk .summary-card__lines b { font-size: 8px; }
 html.android-kiosk.portrait-kiosk .summary-card__lines small { margin-top: 3px; font-size: 7px; }
 html.android-kiosk.portrait-kiosk .summary-card__lines strong { margin-left: 10px; font-size: 8px; }
-html.android-kiosk.portrait-kiosk .summary-total { height: 51.1px; padding: 13px 0; font-size: 11px; }
+html.android-kiosk.portrait-kiosk .summary-total { height: auto; padding: 13px 0; font-size: 11px; }
 html.android-kiosk.portrait-kiosk .summary-total b { padding: 5px 9px; }
 html.android-kiosk.portrait-kiosk .order-type-mini { min-height: 0; margin: 11px 0; gap: 6px; font-size: 9px; }
 html.android-kiosk.portrait-kiosk .order-type-mini svg { width: 15px; height: 24px; }
