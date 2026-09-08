@@ -433,7 +433,8 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
     } catch (err) {
       if (controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) return;
       if (!transactionRef.current && !paidResultRef.current) paymentRequestIdRef.current = '';
-      setError(err instanceof Error ? err.message : t('payment.genericError'));
+      console.error('Payment could not be completed.', err);
+      setError(t('payment.posFailed'));
       setPhase('error');
       onPaymentFailed();
     } finally {
