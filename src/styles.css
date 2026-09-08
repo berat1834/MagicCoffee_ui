@@ -2765,3 +2765,107 @@ html.android-kiosk.portrait-kiosk .customizer > footer .secondary-button {
   border-radius: 38px;
   font-size: 40px;
 }
+
+/* Match Burger cart-sheet geometry while retaining Coffee styling. */
+html.portrait-kiosk .cart-sheet-layer .cart-drawer.page-enter {
+  animation: none;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-drawer {
+  height: 86%;
+  max-height: 86%;
+  border-radius: 24px 24px 0 0;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-drawer > header .icon-button { border-radius: 14px; }
+
+html.portrait-kiosk .cart-sheet-layer .cart-line {
+  grid-template-columns: 66px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 106px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 16px;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-line__image { width: 66px; height: 66px; border-radius: 13px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main { padding-top: 15px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > small { font-size: 6px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main h3 { margin: 3px 0; font-size: 11px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main p { margin-bottom: 7px; font-size: 7px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div {
+  display: grid;
+  grid-template-columns: 27px 18px 27px repeat(2, max-content);
+  column-gap: 8px;
+  align-items: center;
+  justify-content: start;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div button {
+  width: auto;
+  height: 27px;
+  min-width: 27px;
+  border-radius: 8px;
+  font-size: 7px;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.edit,
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.delete { padding-inline: 9px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div svg { width: 12px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div b { min-width: 18px; font-size: 11px; }
+html.portrait-kiosk .cart-sheet-layer .cart-line > strong { right: 10px; top: 10px; font-size: 11px; }
+
+html.portrait-kiosk .cart-sheet-layer .cart-drawer > footer { grid-template-columns: .9fr 1.2fr; }
+html.portrait-kiosk .cart-sheet-layer .cart-drawer > footer .primary-button { font-size: 16px; }
+
+html.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+html.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon svg { width: 24px; height: 24px; }
+
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer { border-radius: 60px 60px 0 0; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header .icon-button { border-radius: 35px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line {
+  grid-template-columns: 166px minmax(0, 1fr);
+  gap: 25px;
+  min-height: 267px;
+  margin-bottom: 25px;
+  padding: 25px;
+  border-left-width: 8px;
+  border-radius: 40px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__image { width: 166px; height: 166px; border-radius: 33px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__image img { padding: 0; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main { padding-top: 38px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > small { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main h3 { margin: 8px 0; font-size: 28px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main p { margin-bottom: 18px; font-size: 18px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div {
+  grid-template-columns: 68px 45px 68px repeat(2, max-content);
+  column-gap: 20px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div button {
+  height: 68px;
+  min-width: 68px;
+  border-radius: 20px;
+  font-size: 18px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.edit,
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.delete { padding-inline: 23px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div svg { width: 30px; height: 30px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div b { min-width: 45px; font-size: 28px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line > strong { right: 25px; top: 25px; font-size: 28px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer {
+  min-height: 196px;
+  grid-template-columns: .9fr 1.2fr;
+  padding: 25px 35px calc(25px + env(safe-area-inset-bottom, 0px));
+  gap: 30px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer .primary-button {
+  min-height: 121px;
+  border-radius: 38px;
+  font-size: 40px;
+}
+html.android-kiosk.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon {
+  width: 105px;
+  height: 105px;
+  border-radius: 35px;
+}
+html.android-kiosk.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon svg { width: 60px; height: 60px; }
