@@ -142,6 +142,7 @@ function ProductCard({ product, quantity, onClick }: { product: Product; quantit
 function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }: { catalog: Catalog; cart: CartLine[]; onProduct: (product: Product) => void; onHeaderCart: () => void; onBottomCart: () => void }) {
   const { t } = useKioskLanguage();
   const [activeCategory, setActiveCategory] = useState('all');
+  const [categoryScroll, setCategoryScroll] = useState({ left: false, right: false });
   const categoriesRef = useRef<HTMLElement>(null);
   const productsRef = useRef<HTMLElement>(null);
   const lastPointerHandledRef = useRef(0);
@@ -149,16 +150,30 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const selectCategory = (categoryId: string) => { setActiveCategory(categoryId); productsRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const revealMoreCategories = () => {
+  const scrollCategories = (direction: -1 | 1) => {
     const categories = categoriesRef.current;
     if (!categories) return;
-    const maxScroll = Math.max(0, categories.scrollWidth - categories.clientWidth);
-    const reachedEnd = categories.scrollLeft >= maxScroll - 2;
-    categories.scrollTo({
-      left: reachedEnd ? 0 : Math.min(maxScroll, categories.scrollLeft + categories.clientWidth * 0.75),
-      behavior: 'smooth',
-    });
+    categories.scrollBy({ left: direction * categories.clientWidth * 0.75, behavior: 'smooth' });
   };
+  useEffect(() => {
+    const categories = categoriesRef.current;
+    if (!categories) return;
+    const syncCategoryArrows = () => {
+      const maxScroll = Math.max(0, categories.scrollWidth - categories.clientWidth);
+      setCategoryScroll({ left: categories.scrollLeft > 2, right: categories.scrollLeft < maxScroll - 2 });
+    };
+    syncCategoryArrows();
+    const frame = window.requestAnimationFrame(syncCategoryArrows);
+    const timer = window.setTimeout(syncCategoryArrows, 150);
+    categories.addEventListener('scroll', syncCategoryArrows, { passive: true });
+    window.addEventListener('resize', syncCategoryArrows);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      categories.removeEventListener('scroll', syncCategoryArrows);
+      window.removeEventListener('resize', syncCategoryArrows);
+    };
+  }, [catalog.categories.length]);
   useEffect(() => {
     const handleNativePress = (event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -187,7 +202,7 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
   }, [catalog.products, onProduct]);
   return <main className="catalog page-enter">
     <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
-    <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap"><nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav><button type="button" className="categories-wrap__hint" onClick={revealMoreCategories} aria-label={t('catalog.moreCategories')}><ArrowRight /></button></div></div>
+    <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap">{categoryScroll.left && <button type="button" className="categories-wrap__hint categories-wrap__hint--prev" onClick={() => scrollCategories(-1)} aria-label={t('catalog.moreCategories')}><ArrowLeft /></button>}<nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav>{categoryScroll.right && <button type="button" className="categories-wrap__hint categories-wrap__hint--next" onClick={() => scrollCategories(1)} aria-label={t('catalog.moreCategories')}><ArrowRight /></button>}</div></div>
     <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
       return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} {t(categoryProducts.length === 1 ? 'catalog.product' : 'catalog.products')}</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;

@@ -2564,3 +2564,84 @@ html.android-kiosk.portrait-kiosk .cart-bar--ready strong { font-size: 45px; }
 
   .intro__touch { width: calc(100% - 48px); }
 }
+
+/* Burger-equivalent kiosk accents and intro control geometry in Coffee colors. */
+html.portrait-kiosk .catalog__header {
+  border-bottom: 3px solid rgba(236, 181, 92, .82);
+}
+
+html.portrait-kiosk .cart-bar {
+  border-top: 3px solid rgba(236, 181, 92, .82);
+}
+
+html.portrait-kiosk .intro__copy {
+  inset-inline: 26px;
+  bottom: 160px;
+}
+
+html.portrait-kiosk .intro__copy p {
+  font-size: 13px;
+  letter-spacing: .34em;
+}
+
+html.portrait-kiosk .intro__copy h1 {
+  max-width: 366px;
+  margin: 7px auto 5px;
+  font-size: 52px;
+  line-height: .74;
+}
+
+html.portrait-kiosk .intro__copy span {
+  max-width: 366px;
+  font-size: 13px;
+  line-height: normal;
+}
+
+html.portrait-kiosk .intro__touch {
+  bottom: 22px;
+  width: calc(100% - 44px);
+  min-height: 56px;
+  padding: 0 13px 0 24px;
+  font-size: 14px;
+}
+
+html.portrait-kiosk .intro__touch svg {
+  width: 36px;
+  height: 36px;
+  padding: 9px;
+}
+
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark { gap: 23px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__star {
+  width: 110px;
+  height: 110px;
+  border-radius: 35px;
+}
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__star svg { width: 63px; height: 63px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__copy b { font-size: 63px; }
+html.android-kiosk.portrait-kiosk .intro__header .brand-mark__copy em { margin-top: 8px; font-size: 28px; }
+
+html.android-kiosk.portrait-kiosk .intro__copy {
+  inset-inline: 65px;
+  bottom: 402px;
+}
+html.android-kiosk.portrait-kiosk .intro__copy p { font-size: 33px; }
+html.android-kiosk.portrait-kiosk .intro__copy h1 {
+  max-width: 920px;
+  margin: 18px auto 13px;
+  font-size: 131px;
+  line-height: .74;
+}
+html.android-kiosk.portrait-kiosk .intro__copy span { max-width: 920px; font-size: 33px; }
+html.android-kiosk.portrait-kiosk .intro__touch {
+  bottom: 55px;
+  width: calc(100% - 110px);
+  min-height: 141px;
+  padding: 0 33px 0 60px;
+  font-size: 35px;
+}
+html.android-kiosk.portrait-kiosk .intro__touch svg {
+  width: 90px;
+  height: 90px;
+  padding: 23px;
+}
