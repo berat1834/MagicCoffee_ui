@@ -2645,3 +2645,145 @@ html.android-kiosk.portrait-kiosk .intro__touch svg {
   height: 90px;
   padding: 23px;
 }
+
+/* Match Burger customizer geometry while preserving the Coffee palette. */
+html.portrait-kiosk .customizer.page-enter {
+  animation: none;
+}
+
+html.portrait-kiosk .customizer > header {
+  min-height: 76px;
+  padding: 12px 18px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+html.portrait-kiosk .customizer > header h2 { margin-top: 3px; font-size: 16px; line-height: 1.2; }
+html.portrait-kiosk .customizer > header small { font-size: 7px; }
+html.portrait-kiosk .customizer > header > b { font-size: 16px; }
+html.portrait-kiosk .customizer > header .icon-button { width: 40px; height: 40px; border-radius: 14px; }
+
+html.portrait-kiosk .customizer__hero {
+  width: 100%;
+  height: 150px;
+  aspect-ratio: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  background: radial-gradient(circle at center, #f5d9ba 0, #c98a55 48%, #6b3923 100%);
+}
+html.portrait-kiosk .customizer__hero::before {
+  display: block;
+  z-index: -1;
+  inset: 0;
+  opacity: 1;
+  background: repeating-conic-gradient(from 45deg at 50% 50%, rgba(255,255,255,.06) 0 8deg, transparent 8deg 20deg);
+  transform: none;
+}
+html.portrait-kiosk .customizer__hero img {
+  position: static;
+  width: 250px;
+  height: 175px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
+  filter: saturate(1.06) contrast(1.03) drop-shadow(0 14px 15px rgba(50, 24, 10, .28));
+}
+html.portrait-kiosk .customizer__hero > div {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  color: white;
+  text-shadow: 0 2px 8px rgba(42, 18, 8, .46);
+}
+html.portrait-kiosk .customizer__hero > div span { font-size: 7px; }
+html.portrait-kiosk .customizer__hero > div b { margin-top: 3px; font-size: 15px; }
+
+html.portrait-kiosk .steps { height: 54px; padding: 0 14px; }
+html.portrait-kiosk .steps button { font-size: 9px; }
+html.portrait-kiosk .steps button i { width: 20px; height: 20px; margin-right: 5px; }
+
+html.portrait-kiosk .customizer__content { padding: 14px 12px; }
+html.portrait-kiosk .customizer__title { align-items: end; margin-bottom: 14px; }
+html.portrait-kiosk .customizer__title small { font-size: 7px; }
+html.portrait-kiosk .customizer__title h3 { margin-top: 3px; font-size: 19px; }
+html.portrait-kiosk .customizer__title p { max-width: 145px; font-size: 9px; line-height: 1.5; }
+html.portrait-kiosk .option-list { gap: 9px; }
+html.portrait-kiosk .option-list button {
+  min-height: 72px;
+  padding: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: normal;
+  border-radius: 16px;
+}
+html.portrait-kiosk .option-list button > span { width: 29px; height: 29px; border-radius: 9px; }
+html.portrait-kiosk .option-list button b { font-size: 11px; }
+html.portrait-kiosk .option-list button small { margin-top: 4px; font-size: 7px; }
+
+html.portrait-kiosk .customizer > footer {
+  min-height: 72px;
+  padding: 11px 16px;
+  gap: 10px;
+  box-shadow: none;
+}
+html.portrait-kiosk .customizer > footer .primary-button,
+html.portrait-kiosk .customizer > footer .secondary-button {
+  min-height: 48px;
+  border-radius: 15px;
+  font-size: 16px;
+}
+
+@media (max-height: 720px) {
+  html.portrait-kiosk .customizer__hero { height: 115px; }
+}
+
+html.android-kiosk.portrait-kiosk .customizer > header {
+  min-height: 191px;
+  padding: 30px 45px;
+  grid-template-columns: 105px minmax(0, 1fr) auto;
+  gap: 30px;
+}
+html.android-kiosk.portrait-kiosk .customizer > header .icon-button { width: 100px; height: 100px; border-radius: 35px; }
+html.android-kiosk.portrait-kiosk .customizer > header .icon-button svg { width: 48px; height: 48px; }
+html.android-kiosk.portrait-kiosk .customizer > header h2 { margin-top: 8px; font-size: 40px; }
+html.android-kiosk.portrait-kiosk .customizer > header small { font-size: 18px; }
+html.android-kiosk.portrait-kiosk .customizer > header > b { font-size: 40px; }
+
+html.android-kiosk.portrait-kiosk .customizer__hero { height: 377px; }
+html.android-kiosk.portrait-kiosk .customizer__hero img { width: 628px; height: 440px; }
+html.android-kiosk.portrait-kiosk .customizer__hero > div { left: 45px; bottom: 40px; }
+html.android-kiosk.portrait-kiosk .customizer__hero > div span { font-size: 18px; }
+html.android-kiosk.portrait-kiosk .customizer__hero > div b { margin-top: 8px; font-size: 38px; }
+html.android-kiosk.portrait-kiosk .steps { height: 136px; padding: 0 35px; }
+html.android-kiosk.portrait-kiosk .steps button { font-size: 23px; }
+html.android-kiosk.portrait-kiosk .steps button i { width: 50px; height: 50px; margin-right: 13px; }
+
+html.android-kiosk.portrait-kiosk .customizer__content { padding: 35px 30px; }
+html.android-kiosk.portrait-kiosk .customizer__title { margin-bottom: 35px; gap: 45px; }
+html.android-kiosk.portrait-kiosk .customizer__title small { font-size: 18px; }
+html.android-kiosk.portrait-kiosk .customizer__title h3 { margin-top: 8px; font-size: 48px; }
+html.android-kiosk.portrait-kiosk .customizer__title p { max-width: 364px; font-size: 23px; line-height: 1.5; }
+html.android-kiosk.portrait-kiosk .option-list { gap: 23px; }
+html.android-kiosk.portrait-kiosk .option-list button {
+  min-height: 181px;
+  padding: 25px;
+  grid-template-columns: 85px minmax(0, 1fr);
+  border-radius: 40px;
+}
+html.android-kiosk.portrait-kiosk .option-list button > span { width: 73px; height: 73px; border-radius: 23px; }
+html.android-kiosk.portrait-kiosk .option-list button svg { width: 40px; height: 40px; }
+html.android-kiosk.portrait-kiosk .option-list button b { font-size: 28px; }
+html.android-kiosk.portrait-kiosk .option-list button small { margin-top: 10px; font-size: 18px; }
+
+html.android-kiosk.portrait-kiosk .customizer > footer { min-height: 181px; padding: 28px 40px; gap: 25px; }
+html.android-kiosk.portrait-kiosk .customizer > footer .primary-button,
+html.android-kiosk.portrait-kiosk .customizer > footer .secondary-button {
+  min-height: 123px;
+  border-radius: 38px;
+  font-size: 40px;
+}

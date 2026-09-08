@@ -8,6 +8,28 @@ import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
 const AUDIO_BASE = '/audio/kiosk/';
+const CUSTOMIZER_HERO_IMAGES: Record<string, string> = {
+  'latte': '/images/products/heroes/latte-hero.webp',
+  'americano': '/images/products/heroes/americano-hero.webp',
+  'flat-white': '/images/products/heroes/flat-white-hero.webp',
+  'batch-brew': '/images/products/heroes/batch-brew-hero.webp',
+  'cold-brew': '/images/products/heroes/cold-brew-hero.webp',
+  'caramel-frappe': '/images/products/heroes/caramel-frappe-hero.webp',
+  'espresso': '/images/products/heroes/espresso-hero.webp',
+  'cappuccino': '/images/products/heroes/cappuccino-hero.webp',
+  'mocha': '/images/products/heroes/mocha-hero.webp',
+  'caramel-macchiato': '/images/products/heroes/caramel-macchiato-hero.webp',
+  'iced-latte': '/images/products/heroes/iced-latte-hero.webp',
+  'turkish-coffee': '/images/products/heroes/turkish-coffee-hero.webp',
+  'v60': '/images/products/heroes/v60-hero.webp',
+  'chemex': '/images/products/heroes/v60-hero.webp',
+  'iced-americano': '/images/products/heroes/iced-americano-hero.webp',
+  'mocha-frappe': '/images/products/heroes/mocha-frappe-hero.webp',
+  'chai-tea-latte': '/images/products/heroes/chai-tea-latte-hero.webp',
+  'hot-chocolate': '/images/products/heroes/hot-chocolate-hero.webp',
+  'menengic-kahvesi': '/images/products/heroes/menengic-kahvesi-hero.webp',
+  'dibek-kahvesi': '/images/products/heroes/dibek-kahvesi-hero.webp',
+};
 
 function useKioskAudio(enabled: boolean, language: KioskLanguage) {
   const current = useRef<HTMLAudioElement | null>(null);
@@ -66,6 +88,10 @@ function useKioskAudio(enabled: boolean, language: KioskLanguage) {
 
 function preloadCatalogImages(catalog: Catalog) {
   const urls = new Set(catalog.products.map((product) => assetUrl(product.image)).filter(Boolean));
+  catalog.products.forEach((product) => {
+    const heroImage = CUSTOMIZER_HERO_IMAGES[product.id];
+    if (heroImage) urls.add(assetUrl(heroImage));
+  });
   for (const url of urls) {
     const link = document.createElement('link');
     link.rel = 'preload';
@@ -264,9 +290,10 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   };
   if (!current) return null;
   const [stepId, step] = current;
+  const heroImage = CUSTOMIZER_HERO_IMAGES[product.id] ?? product.image;
   return <main className="customizer page-enter" role="dialog" aria-modal="true">
     <header><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button><div><small>{t('customizer.prepare')}</small><h2>{product.name}</h2></div><b>{money(unitPrice)}</b></header>
-    <div className="customizer__hero">{product.image ? <img src={assetUrl(product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span className="customizer__emoji">{product.emoji || '☕'}</span>}<div><span>MAGIC COFFEE</span><b>{customizationStepLabel(language, stepId, step)}</b></div></div>
+    <div className="customizer__hero">{heroImage && <img src={assetUrl(heroImage)} alt={product.name} draggable={false} loading="eager" decoding="async" fetchPriority="high" />}<div><span>MAGIC COFFEE</span><b>{customizationStepLabel(language, stepId, step)}</b></div></div>
     <nav className="steps">{steps.map(([id, item], stepIndex) => <button key={id} className={stepIndex === index ? 'active' : ''} onClick={() => setIndex(stepIndex)}><i>{stepIndex + 1}</i>{customizationStepLabel(language, id, item)}</button>)}</nav>
     <div className="customizer__content"><div className="customizer__title"><span><small>{t('customizer.selection')}</small><h3>{customizationStepLabel(language, stepId, step)}</h3></span><p>{step.required ? t('customizer.required') : t('customizer.optional')}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled !== false).map((option) => {
