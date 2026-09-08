@@ -2926,3 +2926,26 @@ html.android-kiosk.portrait-kiosk .cart-bar__icon i {
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
   border-bottom-width: 2px;
 }
+
+/* Match Burger delete-control geometry and cart-header divider. */
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.edit {
+  margin-right: 0 !important;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.delete {
+  gap: 4px;
+  padding-inline: 9px;
+}
+html.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
+  border-bottom: 1px solid var(--line);
+}
+
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.edit {
+  margin-right: 0 !important;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-line__main > div button.delete {
+  gap: 10px;
+  padding-inline: 23px;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
+  border-bottom: 3px solid var(--line);
+}
