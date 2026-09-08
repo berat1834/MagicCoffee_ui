@@ -3144,7 +3144,7 @@ html.android-kiosk.portrait-kiosk .payment-options button > span { width: 58px; 
 html.android-kiosk.portrait-kiosk .payment-options button svg { width: 29px; height: 29px; stroke-width: 2px; }
 html.android-kiosk.portrait-kiosk .payment-options button b { font-size: 13px; }
 html.android-kiosk.portrait-kiosk .payment-options button small { margin-top: 8px; font-size: 7px; }
-html.android-kiosk.portrait-kiosk .payment__summary { height: 385.4px; min-height: 0; align-self: center; justify-self: center; margin-top: 0; padding: 16px; border-radius: 25px; }
+html.android-kiosk.portrait-kiosk .payment__summary { height: 385.4px; min-height: 0; align-self: center; justify-self: center; margin-top: 0; padding: 16px; border-radius: 25px; transform: translateY(-13px); }
 html.android-kiosk.portrait-kiosk .amount { height: 111.7px; padding: 19px; border-bottom: 4px solid #d39a52; border-radius: 25px; }
 html.android-kiosk.portrait-kiosk .amount small { font-size: 8px; line-height: 9.6px; }
 html.android-kiosk.portrait-kiosk .amount b { margin-top: 8px; font-size: clamp(31px, 4vw, 52px); line-height: 52.1px; letter-spacing: -.05em; }
