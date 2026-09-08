@@ -3410,3 +3410,51 @@ html.portrait-kiosk .customizer > footer,
 html.android-kiosk.portrait-kiosk .customizer > footer {
   border-top: 1px solid rgba(201, 135, 69, .46);
 }
+
+/* Compatibility for the kiosk's older Android WebView layout engine. */
+html.android-kiosk.portrait-kiosk .app-shell {
+  position: relative;
+}
+html.android-kiosk.portrait-kiosk .categories {
+  gap: 0 !important;
+  column-gap: 0 !important;
+}
+html.android-kiosk.portrait-kiosk .categories button:not(:last-child) {
+  margin-right: 13px !important;
+}
+html.android-kiosk.portrait-kiosk .categories button:last-child {
+  margin-right: 0 !important;
+}
+
+html.android-kiosk.portrait-kiosk .cart-sheet-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  zoom: 1;
+  transform: scale(var(--logical-kiosk-scale, 1));
+  transform-origin: top left;
+}
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-sheet-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+html.android-kiosk.portrait-kiosk .language-picker__backdrop { top: 0; left: 0; }
+
+html.android-kiosk.portrait-kiosk .cart-bar { gap: 0 !important; }
+html.android-kiosk.portrait-kiosk .cart-bar__icon + b,
+html.android-kiosk.portrait-kiosk .cart-bar__icon + span {
+  margin-left: 33px;
+}
+
+html.android-kiosk.portrait-kiosk .summary-total {
+  border-top: 1px dashed rgba(217, 204, 196, .99);
+  border-bottom: 1px dashed #d9ccc4;
+}
+html.android-kiosk.portrait-kiosk .order-type-mini { gap: 0; }
+html.android-kiosk.portrait-kiosk .order-type-mini svg { margin-right: 6px; }
+
+html.android-kiosk.portrait-kiosk .language-picker__header { gap: 0; }
+html.android-kiosk.portrait-kiosk .language-picker__header > div { margin-left: 9px; }

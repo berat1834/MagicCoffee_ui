@@ -207,7 +207,20 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
       const now = Date.now();
-      if (event.type === 'click' && now - lastPointerHandledRef.current < 700) return;
+      if (event.type === 'click' && now - lastPointerHandledRef.current < 700) {
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      const cartButton = target.closest<HTMLButtonElement>('[data-clickable="cart"]');
+      if (cartButton && !cartButton.disabled) {
+        if (event.type === 'pointerup') lastPointerHandledRef.current = now;
+        if (event.cancelable) event.preventDefault();
+        if (cartButton.classList.contains('header-cart')) onHeaderCart();
+        else onBottomCart();
+        return;
+      }
 
       const productButton = target.closest<HTMLButtonElement>('.product-card');
       if (productButton && !productButton.disabled) {
@@ -227,7 +240,7 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
       document.removeEventListener('pointerup', handleNativePress, { capture: true });
       document.removeEventListener('click', handleNativePress, { capture: true });
     };
-  }, [catalog.products, onProduct]);
+  }, [catalog.products, onBottomCart, onHeaderCart, onProduct]);
   return <main className="catalog page-enter">
     <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
     <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap">{categoryScroll.left && <button type="button" className="categories-wrap__hint categories-wrap__hint--prev" onClick={() => scrollCategories(-1)} aria-label={t('catalog.moreCategories')}><ArrowLeft /></button>}<nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav>{categoryScroll.right && <button type="button" className="categories-wrap__hint categories-wrap__hint--next" onClick={() => scrollCategories(1)} aria-label={t('catalog.moreCategories')}><ArrowRight /></button>}</div></div>
