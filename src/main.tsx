@@ -4,8 +4,6 @@ import App from './App';
 import { KioskLanguageProvider } from './i18n/KioskLanguage';
 import './styles.css';
 
-const KIOSK_LOGICAL_WIDTH = 430;
-
 function syncKioskViewport() {
   const root = document.documentElement;
   const viewportHeight = Math.floor(Math.min(
@@ -14,9 +12,10 @@ function syncKioskViewport() {
     root.clientHeight || window.innerHeight,
   ));
   const isPortraitKiosk = window.innerHeight / window.innerWidth >= 1.45;
-  const isAndroidKiosk = /Android/i.test(navigator.userAgent) || window.location.protocol === 'capacitor:';
+  const isAndroidDevice = /Android/i.test(navigator.userAgent) || window.location.protocol === 'capacitor:';
+  const usesLargeKioskLayout = isAndroidDevice || (isPortraitKiosk && window.innerWidth >= 768);
 
-  root.classList.toggle('android-kiosk', isAndroidKiosk);
+  root.classList.toggle('android-kiosk', usesLargeKioskLayout);
 
   if (!isPortraitKiosk) {
     root.classList.remove('portrait-kiosk');
@@ -25,8 +24,7 @@ function syncKioskViewport() {
   }
 
   root.classList.add('portrait-kiosk');
-  const kioskWidth = isAndroidKiosk ? window.innerWidth : Math.min(window.innerWidth, KIOSK_LOGICAL_WIDTH);
-  root.style.setProperty('--kiosk-width', `${kioskWidth}px`);
+  root.style.setProperty('--kiosk-width', `${window.innerWidth}px`);
   root.style.setProperty('--kiosk-height', `${viewportHeight}px`);
 }
 
