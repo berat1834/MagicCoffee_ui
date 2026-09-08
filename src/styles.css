@@ -3406,3 +3406,7 @@ html.android-kiosk.portrait-kiosk .language-picker__options > button > span {
 html.android-kiosk.portrait-kiosk .language-picker__options > button > b { font-size: 13px; }
 html.android-kiosk.portrait-kiosk .language-picker__options i { right: 11px; width: 24px; height: 24px; }
 html.android-kiosk.portrait-kiosk .language-picker__options i svg { width: 14px; height: 14px; }
+html.portrait-kiosk .customizer > footer,
+html.android-kiosk.portrait-kiosk .customizer > footer {
+  border-top: 1px solid rgba(201, 135, 69, .46);
+}
