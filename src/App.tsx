@@ -141,15 +141,17 @@ function OrderType({ soundOn, onToggleSound, onContinue }: { soundOn: boolean; o
   const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
   return <main className="order-type page-enter">
     <div className="order-type__actions">
-      <button className="utility-button" onClick={() => setLanguagePickerOpen((open) => !open)} aria-haspopup="menu" aria-expanded={languagePickerOpen} aria-label={t('language.choose')}><span><Languages /></span><small>{t('language.title')}</small><b>{t('language.current')}</b></button>
-      {languagePickerOpen && <><button type="button" className="language-picker__dismiss" onClick={() => setLanguagePickerOpen(false)} aria-label={t('common.close')} /><section className="language-picker" role="menu" aria-label={t('language.choose')}><div className="language-picker__options">{SUPPORTED_LANGUAGES.map((option) => { const selected = option === language; return <button type="button" role="menuitemradio" aria-checked={selected} key={option} className={selected ? 'selected' : ''} onClick={() => { setLanguage(option); setLanguagePickerOpen(false); }}><small>{option.toUpperCase()}</small><b>{option === 'tr' ? t('language.turkish') : t('language.english')}</b>{selected && <i><Check /></i>}</button>; })}</div></section></>}
-      <button className="utility-button" onClick={onToggleSound}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>{t('audio.title')}</small><b>{soundOn ? t('audio.on') : t('audio.off')}</b></button>
+      <div className="language-control">
+        <button className="utility-button utility-button--language" onClick={() => setLanguagePickerOpen((open) => !open)} aria-haspopup="menu" aria-expanded={languagePickerOpen} aria-label={t('language.choose')}><span><Languages /></span><small>{t('language.title')}</small><b>{t('language.current')}</b></button>
+        {languagePickerOpen && <><button type="button" className="language-picker__dismiss" onClick={() => setLanguagePickerOpen(false)} aria-label={t('common.close')} /><section className="language-picker" role="menu" aria-label={t('language.choose')}><div className="language-picker__options">{SUPPORTED_LANGUAGES.map((option) => { const selected = option === language; return <button type="button" role="menuitemradio" aria-checked={selected} key={option} className={selected ? 'selected' : ''} onClick={() => { setLanguage(option); setLanguagePickerOpen(false); }}><small>{option.toUpperCase()}</small><b>{option === 'tr' ? t('language.turkish') : t('language.english')}</b>{selected && <i><Check /></i>}</button>; })}</div></section></>}
+      </div>
+      <button className="utility-button utility-button--sound" onClick={onToggleSound}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>{t('audio.title')}</small><b>{soundOn ? t('audio.on') : t('audio.off')}</b></button>
     </div>
     <section className="order-type__content">
       <h1>{t('orderType.title')}</h1><p>{t('orderType.subtitle')}</p>
       <div className="order-type__grid">
         <button onClick={() => onContinue('restaurant')}><span><UtensilsCrossed /></span><b>{t('orderType.restaurant')}</b><small>{t('orderType.restaurantHint')}</small></button>
-        <button onClick={() => onContinue('package')}><span><Package /></span><b>{t('orderType.package')}</b><small>{t('orderType.packageHint')}</small></button>
+        <button onClick={() => onContinue('package')}><span><ShoppingBag /></span><b>{t('orderType.package')}</b><small>{t('orderType.packageHint')}</small></button>
       </div>
     </section>
   </main>;
