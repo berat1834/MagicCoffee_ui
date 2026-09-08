@@ -265,10 +265,11 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
 function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }: { cart: CartLine[]; onClose: () => void; onQuantity: (key: string, delta: number) => void; onDelete: (key: string) => void; onEdit: (line: CartLine) => void; onCheckout: () => void }) {
   const { t } = useKioskLanguage();
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   return <main className="cart-drawer page-enter">
-    <header><span><ShoppingBag /></span><div><h2>{t('cart.myCart')}</h2><small>{t('cart.lineCount', { count: cart.length })}</small></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button></header>
+    <header><span><ShoppingBag /></span><div><h2>{t('cart.myCart')}</h2><small>{t('cart.lineCount', { count: itemCount })}</small></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button></header>
     <div className="cart-drawer__items">{!cart.length && <div className="empty-cart"><ShoppingBag /><h3>{t('cart.emptyLong')}</h3><p>{t('cart.emptyHint')}</p></div>}{cart.map((line) => <article className="cart-line" key={line.key}><div className="cart-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{line.product.emoji || '☕'}</span>}</div><div className="cart-line__main"><small>MAGIC COFFEE</small><h3>{line.product.name}</h3><p>{Object.values(line.selection?.choices ?? {}).flat().length ? t('cart.customized') : t('cart.standard')}</p><div><button onClick={() => onQuantity(line.key, -1)}><Minus /></button><b>{line.quantity}</b><button className="plus" onClick={() => onQuantity(line.key, 1)}><Plus /></button>{hasActiveCustomization(line.product) && <button className="edit" onClick={() => onEdit(line)}>{t('cart.edit')}</button>}<button className="delete" onClick={() => onDelete(line.key)}><Trash2 /> {t('cart.delete')}</button></div></div><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div>
-    <footer><div><small>{t('cart.total')}</small><b>{money(total)}</b><span>{cart.reduce((sum, line) => sum + line.quantity, 0)} {t('cart.items')}</span></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>{t('cart.checkout')}</button></footer>
+    <footer><div><small>{t('cart.total')}</small><b>{money(total)}</b><span>{itemCount} {t('cart.items')}</span></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>{t('cart.checkout')}</button></footer>
   </main>;
 }
 

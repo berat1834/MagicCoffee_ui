@@ -2230,7 +2230,7 @@ html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer {
 }
 
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer {
-  border-radius: 52px 52px 0 0;
+  border-radius: 60px 60px 0 0;
 }
 
 html.portrait-kiosk .cart-sheet-layer .cart-drawer__items,
@@ -2282,46 +2282,47 @@ html.portrait-kiosk .cart-sheet-layer .cart-drawer > footer .primary-button {
 }
 
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header {
-  min-height: 165px;
-  padding: 26px 38px;
+  min-height: 166px;
+  padding: 25px 35px;
   grid-template-columns: 96px 1fr 100px;
-  gap: 24px;
+  gap: 23px;
 }
 
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header > span {
-  width: 96px;
-  height: 96px;
-  border-radius: 32px;
+  width: 90px;
+  height: 90px;
+  border-radius: 30px;
 }
 
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header .icon-button {
   width: 100px;
   height: 100px;
-  border-radius: 32px;
+  border-radius: 30px;
 }
 
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header svg { width: 50px; height: 50px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header h2 { font-size: 45px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header small { font-size: 21px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer__items { padding: 32px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart { min-height: 660px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart > svg { width: 138px; height: 138px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart h3 { margin: 37px 0 11px; font-size: 42px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart p { font-size: 26px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header svg { width: 48px; height: 48px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header h2 { font-size: 43px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > header small { font-size: 20px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer__items { padding: 30px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart { min-height: 653px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart > svg { width: 131px; height: 131px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart h3 { margin: 35px 0 10px; font-size: 40px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .empty-cart p { font-size: 25px; }
 
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer {
-  min-height: 198px;
-  padding: 26px 38px calc(26px + env(safe-area-inset-bottom, 0px));
-  gap: 32px;
+  min-height: 196px;
+  grid-template-columns: .9fr 1.2fr;
+  padding: 25px 35px calc(25px + env(safe-area-inset-bottom, 0px));
+  gap: 30px;
 }
 
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer small { font-size: 16px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer b { font-size: 50px; }
-html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer span { font-size: 21px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer small { font-size: 15px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer b { font-size: 48px; }
+html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer span { font-size: 20px; }
 html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer .primary-button {
-  min-height: 127px;
-  border-radius: 40px;
-  font-size: 38px;
+  min-height: 121px;
+  border-radius: 38px;
+  font-size: 40px;
 }
 
 @media (min-width: 700px) and (orientation: landscape) {
