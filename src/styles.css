@@ -3271,3 +3271,18 @@ html.android-kiosk.portrait-kiosk .cart-sheet-layer .cart-drawer > footer .prima
   border-radius: 15px;
   font-size: 16px;
 }
+
+html.android-kiosk.portrait-kiosk .payment .amount { height: 122px; }
+
+html.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+html.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon svg { width: 19px; height: 24px; }
+html.android-kiosk.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 30px;
+}
+html.android-kiosk.portrait-kiosk .cart-bar:not(.cart-bar--ready) .cart-bar__icon svg { width: 48px; height: 60px; }
