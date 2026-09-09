@@ -7,6 +7,7 @@ if (API_BASE_URL.toLowerCase().includes(FORBIDDEN_PROJECT_MARKER)) {
 }
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 const REQUEST_TIMEOUT_MS = 10000;
+const KIOSK_IDENTITY_HEADERS = { 'X-MagicCoffee-Kiosk-Fingerprint': 'TEST' };
 
 async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -67,7 +68,7 @@ export async function startPosPayment(args: {
   const response = await fetchWithTimeout(apiUrl('/api/pos/payments'), {
     method: 'POST',
     signal: args.signal,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...KIOSK_IDENTITY_HEADERS },
     body: JSON.stringify({
       clientRequestId: args.clientRequestId,
       paymentMethod: args.paymentMethod,
@@ -89,7 +90,10 @@ export async function startPosPayment(args: {
 }
 
 export async function pollPosPayment(transactionId: string, signal?: AbortSignal): Promise<PosPaymentResult> {
-  const response = await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}`), { signal }, 25000);
+  const response = await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}`), {
+    signal,
+    headers: KIOSK_IDENTITY_HEADERS,
+  }, 25000);
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     throw new Error(body.detail || 'POS ödeme durumu alınamadı.');
