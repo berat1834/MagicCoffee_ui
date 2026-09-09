@@ -1,6 +1,10 @@
 import type { CartLine, Catalog, Fulfillment } from './types';
 
+const FORBIDDEN_PROJECT_MARKER = ['full', 'moon'].join('');
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://magiccoffee-api.onrender.com').replace(/\/$/, '');
+if (API_BASE_URL.toLowerCase().includes(FORBIDDEN_PROJECT_MARKER)) {
+  throw new Error('Kiosk API adresi bu proje icin kullanilamaz.');
+}
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -25,7 +29,7 @@ async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = 
 
 export function assetUrl(path?: string) {
   if (!path) return '';
-  if (/^https?:\/\//.test(path)) return path;
+  if (/^https?:\/\//.test(path)) return path.toLowerCase().includes(FORBIDDEN_PROJECT_MARKER) ? '' : path;
   if (path.startsWith('/uploads/')) return apiUrl(path);
   return path;
 }

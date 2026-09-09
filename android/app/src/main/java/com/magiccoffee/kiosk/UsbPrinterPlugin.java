@@ -376,7 +376,7 @@ public class UsbPrinterPlugin extends Plugin {
     try {
       String orderCode = safeText(call.getString("orderCode", "806"));
       String saleId = safeText(call.getString("saleId", "preview-sale"));
-      String trackingUrl = call.getString("trackingUrl", "https://fullmoonui.magicpay.ai/t/" + orderCode);
+      String trackingUrl = safeText(call.getString("trackingUrl", ""));
       String currency = safeText(call.getString("currency", "TL"));
       Double totalValue = call.getDouble("total");
       double total = totalValue != null ? totalValue : 0.0;
@@ -604,7 +604,7 @@ public class UsbPrinterPlugin extends Plugin {
     sauce.put("unitPrice", 20.0);
     items.put(sauce);
 
-    Bitmap bmp = drawOrderReceiptBitmap(orderCode, "", "Burada", "Kredi / Banka Kartı", "TEST-REF", "tr", "TL", 382.0, 382.0, items);
+    Bitmap bmp = drawOrderReceiptBitmap(orderCode, "", "Restoranda", "Kredi / Banka Kartı", "TEST-REF", "tr", "TL", 382.0, 382.0, items);
     try {
       writeOrderReceiptBitmap(bmp);
     } finally {
@@ -941,24 +941,24 @@ public class UsbPrinterPlugin extends Plugin {
     canvas.drawCircle(stubX, y + 56, 10, paint);
     canvas.drawCircle(stubX, y + h, 10, paint);
 
-    drawLogoFromAsset(canvas, paint, 18, 15, 64, 64);
+    drawMagicCoffeeMark(canvas, paint, 18, 15, 64, 64);
 
     paint.setColor(ink);
     paint.setTypeface(DISPLAY_TYPEFACE);
     paint.setTextSize(26);
-    canvas.drawText("FULLMOON", 96, 48, paint);
-    float passX = 96 + paint.measureText("FULLMOON") + 8;
+    canvas.drawText("MAGIC COFFEE", 96, 48, paint);
+    float passX = 96 + paint.measureText("MAGIC COFFEE") + 8;
     canvas.drawText("PASS", passX, 48, paint);
     paint.setTextSize(14);
-    canvas.drawText("TO THE MOON", 466, 48, paint);
+    canvas.drawText("FRESHLY PREPARED", 466, 48, paint);
 
-    drawNativeField(canvas, paint, "MISAFIR", "FULLMOON MİSAFİRİ", 34, 104, 122, 13, muted, ink);
+    drawNativeField(canvas, paint, "MISAFIR", "MAGIC COFFEE MISAFIRI", 34, 104, 122, 13, muted, ink);
     drawNativeField(canvas, paint, "TARIH", currentDate(), 166, 104, 60, 12, muted, ink);
     drawNativeField(canvas, paint, "SAAT", currentTime(), 230, 104, 34, 12, muted, ink);
 
     drawNativeField(canvas, paint, "KALKIS", "DÜNYA", 34, 160, 58, 16, muted, ink);
     drawNativeField(canvas, paint, "VARIS", "AY", 116, 160, 42, 16, muted, ink);
-    drawNativeField(canvas, paint, "UCUS", "FM-" + orderCode, 214, 160, 48, 14, muted, ink);
+    drawNativeField(canvas, paint, "SIPARIS", "MC-" + orderCode, 214, 160, 48, 14, muted, ink);
 
     paint.setColor(ink);
     paint.setTypeface(LABEL_TYPEFACE);
@@ -1001,8 +1001,10 @@ public class UsbPrinterPlugin extends Plugin {
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(10);
     canvas.drawText("SIPARIS NO", 466, 88, paint);
-    drawNativeFitText(canvas, paint, "FM - " + orderCode, 466, 126, 88, 28, ink);
-    drawNativeQr(canvas, paint, 458, 136, 104, trackingUrl);
+    drawNativeFitText(canvas, paint, "MC - " + orderCode, 466, 126, 88, 28, ink);
+    if (!trackingUrl.isEmpty()) {
+      drawNativeQr(canvas, paint, 458, 136, 104, trackingUrl);
+    }
 
     paint.setColor(muted);
     paint.setTypeface(LABEL_TYPEFACE);
@@ -1048,20 +1050,20 @@ public class UsbPrinterPlugin extends Plugin {
     paint.setColor(ink);
     canvas.drawRoundRect(new RectF(18, 18, 782, 782), 18, 18, paint);
 
-    drawLogoFromAsset(canvas, paint, 40, 42, 92, 92);
+    drawMagicCoffeeMark(canvas, paint, 40, 42, 92, 92);
     paint.setStyle(Paint.Style.FILL);
     paint.setTypeface(DISPLAY_TYPEFACE);
     paint.setColor(ink);
     paint.setTextSize(48);
-    canvas.drawText("FULLMOON", 150, 86, paint);
+    canvas.drawText("MAGIC COFFEE", 150, 86, paint);
     paint.setTextSize(24);
-    canvas.drawText("PRODUCT PASS  •  TO THE MOON", 152, 124, paint);
+    canvas.drawText("PRODUCT LABEL", 152, 124, paint);
 
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(17);
     paint.setColor(muted);
     canvas.drawText("SIPARIS NO", 592, 60, paint);
-    drawNativeFitText(canvas, paint, "FM-" + safeText(orderCode), 590, 116, 172, 43, ink);
+    drawNativeFitText(canvas, paint, "MC-" + safeText(orderCode), 590, 116, 172, 43, ink);
 
     paint.setColor(ink);
     paint.setStrokeWidth(3);
@@ -1228,19 +1230,17 @@ public class UsbPrinterPlugin extends Plugin {
     return withCutMargin;
   }
 
-  private void drawLogoFromAsset(Canvas canvas, Paint paint, int x, int y, int width, int height) {
-    boolean previousFilter = paint.isFilterBitmap();
-    try (InputStream is = getContext().getAssets().open("public/image/fullmoon-logo.png")) {
-      Bitmap logo = BitmapFactory.decodeStream(is);
-      if (logo != null) {
-        paint.setFilterBitmap(true);
-        canvas.drawBitmap(logo, null, new RectF(x, y, x + width, y + height), paint);
-        logo.recycle();
-      }
-    } catch (Exception ignored) {
-    } finally {
-      paint.setFilterBitmap(previousFilter);
-    }
+  private void drawMagicCoffeeMark(Canvas canvas, Paint paint, int x, int y, int width, int height) {
+    paint.setStyle(Paint.Style.STROKE);
+    paint.setStrokeWidth(Math.max(2, width / 18f));
+    paint.setColor(Color.rgb(18, 19, 21));
+    canvas.drawRoundRect(new RectF(x, y, x + width, y + height), width / 5f, width / 5f, paint);
+    paint.setStyle(Paint.Style.FILL);
+    paint.setTypeface(DISPLAY_TYPEFACE);
+    paint.setTextAlign(Paint.Align.CENTER);
+    paint.setTextSize(width * 0.38f);
+    canvas.drawText("MC", x + width / 2f, y + height * 0.64f, paint);
+    paint.setTextAlign(Paint.Align.LEFT);
   }
 
   private void drawNativeField(Canvas canvas, Paint paint, String label, String value, float x, float y, float width, float size, int muted, int ink) {
@@ -1455,7 +1455,7 @@ public class UsbPrinterPlugin extends Plugin {
 
     // The kiosk has both a receipt printer and a label printer. Prefer the
     // known POS80 receipt device explicitly so a vendor-specific label device
-    // can never be mistaken for the Fullmoon Pass printer.
+    // can never be mistaken for the receipt printer.
     if (!preferTsc) {
       for (UsbDevice candidate : candidates) {
         if (isReceiptDevice(candidate)) {
@@ -1476,7 +1476,7 @@ public class UsbPrinterPlugin extends Plugin {
 
     // Never fall back to an arbitrary USB printer for labels. Sending TSPL
     // commands to the POS80 receipt printer can leave it unresponsive after a
-    // successful Fullmoon Pass print when the TSC printer is disconnected.
+    // successful receipt print when the TSC printer is disconnected.
     if (preferTsc) {
       Log.w(TAG, "TSC label printer not found; refusing receipt-printer fallback");
       return null;

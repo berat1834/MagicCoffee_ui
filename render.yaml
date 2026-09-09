@@ -1,7 +1,7 @@
 services:
   - type: static
     name: magiccoffee-ui
-    branch: Berat
+    branch: main
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
