@@ -501,13 +501,11 @@ export default function App() {
   }, [language]);
   useEffect(loadCatalog, [loadCatalog]);
   useEffect(() => {
-    const interval = window.setInterval(loadCatalog, 30000);
     const refreshOnVisible = () => {
       if (document.visibilityState === 'visible') loadCatalog();
     };
     document.addEventListener('visibilitychange', refreshOnVisible);
     return () => {
-      window.clearInterval(interval);
       document.removeEventListener('visibilitychange', refreshOnVisible);
     };
   }, [loadCatalog]);
