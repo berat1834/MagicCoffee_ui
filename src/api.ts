@@ -58,12 +58,24 @@ export async function fetchCatalog(language: 'tr' | 'en' = 'tr'): Promise<Catalo
   return response.json() as Promise<Catalog>;
 }
 
+export type CastlesDeviceOption = { serial: string; name: string };
+
+export async function fetchCastlesDevices(): Promise<CastlesDeviceOption[]> {
+  const response = await fetchWithTimeout(apiUrl('/api/pos/castles/devices'), { headers: KIOSK_IDENTITY_HEADERS }, 15000);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || 'Castles cihaz listesi alınamadı.');
+  }
+  return response.json() as Promise<CastlesDeviceOption[]>;
+}
+
 export async function startPosPayment(args: {
   clientRequestId: string;
   paymentMethod: 'card' | 'meal-card';
   amount: number;
   lines: CartLine[];
   signal?: AbortSignal;
+  terminalSerial?: string;
 }): Promise<PosPaymentResult> {
   const response = await fetchWithTimeout(apiUrl('/api/pos/payments'), {
     method: 'POST',
@@ -73,6 +85,7 @@ export async function startPosPayment(args: {
       clientRequestId: args.clientRequestId,
       paymentMethod: args.paymentMethod,
       amount: args.amount,
+      terminalSerial: args.terminalSerial ?? null,
       lines: args.lines.map((line) => ({
         productId: line.product.id,
         name: line.product.name,

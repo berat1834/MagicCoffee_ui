@@ -1,6 +1,8 @@
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, CreditCard, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { assetUrl, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type PosPaymentStatus } from './api';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, Cpu, CreditCard, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { assetUrl, fetchCastlesDevices, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type CastlesDeviceOption, type PosPaymentStatus } from './api';
+import { getKioskTerminalSerial, setKioskTerminalSerial } from './kioskSettings';
 import { customizationOptionLabel, customizationStepLabel } from './i18n/catalogLocalization';
 import { SUPPORTED_LANGUAGES, useKioskLanguage, type KioskLanguage } from './i18n/KioskLanguage';
 import { prepareOrderPrinter, printOrderReceiptOnce, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
@@ -125,6 +127,48 @@ function BrandMark({ light = false, compact = false }: { light?: boolean; compac
   </div>;
 }
 
+const SETTINGS_TAP_COUNT = 5;
+const SETTINGS_TAP_WINDOW_MS = 3000;
+
+function KioskSettingsModal({ onClose }: { onClose: () => void }) {
+  const [devices, setDevices] = useState<CastlesDeviceOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(() => getKioskTerminalSerial());
+  const [selected, setSelected] = useState<string | null>(saved);
+  useEffect(() => {
+    let cancelled = false;
+    fetchCastlesDevices()
+      .then((list) => { if (!cancelled) setDevices(list); })
+      .catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Castles cihaz listesi alınamadı.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+  const save = () => { setKioskTerminalSerial(selected); setSaved(selected); onClose(); };
+  const savedDevice = devices.find((device) => device.serial === saved);
+  return createPortal(<div className="kiosk-settings-backdrop" onMouseDown={onClose} onClick={(event) => event.stopPropagation()}>
+    <section className="kiosk-settings page-enter" role="dialog" aria-modal="true" aria-label="Kiosk ayarları" onMouseDown={(event) => event.stopPropagation()}>
+      <button className="icon-button" onClick={onClose} aria-label="Kapat"><X /></button>
+      <span className="kiosk-settings__icon"><Cpu /></span>
+      <small>KİOSK AYARLARI</small>
+      <h2>Castles POS cihazı</h2>
+      <p>Bu kioskun ödemeleri göndereceği cihazı seçin. Şu an: <b>{saved ? `${savedDevice?.name ?? 'Cihaz'} (${saved})` : 'Seçili değil'}</b></p>
+      {error && <div className="payment__error">{error}</div>}
+      <div className="kiosk-settings__options" role="radiogroup" aria-label="Castles cihazı">
+        <button type="button" role="radio" aria-checked={selected === null} className={selected === null ? 'selected' : ''} onClick={() => setSelected(null)}><b>Seçili değil</b><small>Sunucudaki varsayılan cihaz kullanılır</small>{selected === null && <i><Check /></i>}</button>
+        {loading && <div className="kiosk-settings__hint"><RotateCcw className="spin" /> Cihazlar yükleniyor...</div>}
+        {!loading && !error && !devices.length && <div className="kiosk-settings__hint">Panelde tanımlı aktif Castles cihazı yok.</div>}
+        {devices.map((device) => <button type="button" key={device.serial} role="radio" aria-checked={selected === device.serial} className={selected === device.serial ? 'selected' : ''} onClick={() => setSelected(device.serial)}><b>{device.name}</b><small>{device.serial}</small>{selected === device.serial && <i><Check /></i>}</button>)}
+        {!loading && saved && !savedDevice && selected === saved && <div className="kiosk-settings__hint">Kayıtlı cihaz ({saved}) artık listede yok; yeni bir cihaz seçin.</div>}
+      </div>
+      <div className="kiosk-settings__actions">
+        <button className="secondary-button" onClick={onClose}>Kapat</button>
+        <button className="primary-button" onClick={save}><Check /> Kaydet</button>
+      </div>
+    </section>
+  </div>, document.body);
+}
+
 function Intro({ onStart, loading }: { onStart: () => void; loading: boolean }) {
   const { t } = useKioskLanguage();
   return <button type="button" className="intro" onClick={onStart} aria-label={t('intro.startAria')}>
@@ -174,6 +218,18 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
   const categoriesRef = useRef<HTMLElement>(null);
   const productsRef = useRef<HTMLElement>(null);
   const lastPointerHandledRef = useRef(0);
+  // Logoya 3 saniye içinde 5 kez dokunulunca gizli kiosk ayarları açılır.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const brandTapsRef = useRef<number[]>([]);
+  const handleBrandTap = (event: MouseEvent<HTMLSpanElement>) => {
+    event.stopPropagation();
+    const now = Date.now();
+    brandTapsRef.current = [...brandTapsRef.current.filter((at) => now - at <= SETTINGS_TAP_WINDOW_MS), now];
+    if (brandTapsRef.current.length >= SETTINGS_TAP_COUNT) {
+      brandTapsRef.current = [];
+      setSettingsOpen(true);
+    }
+  };
   const visibleCategories = activeCategory === 'all' ? catalog.categories : catalog.categories.filter((item) => item.id === activeCategory);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
@@ -242,13 +298,14 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
     };
   }, [catalog.products, onBottomCart, onHeaderCart, onProduct]);
   return <main className="catalog page-enter">
-    <header className="catalog__header"><BrandMark light compact /><button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
+    <header className="catalog__header"><span className="catalog__brand-tap" onClick={handleBrandTap}><BrandMark light compact /></span><button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
     <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap">{categoryScroll.left && <button type="button" className="categories-wrap__hint categories-wrap__hint--prev" onClick={() => scrollCategories(-1)} aria-label={t('catalog.moreCategories')}><ArrowLeft /></button>}<nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav>{categoryScroll.right && <button type="button" className="categories-wrap__hint categories-wrap__hint--next" onClick={() => scrollCategories(1)} aria-label={t('catalog.moreCategories')}><ArrowRight /></button>}</div></div>
     <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
       return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} {t(categoryProducts.length === 1 ? 'catalog.product' : 'catalog.products')}</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;
     })}</section>
     <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart" onClick={onBottomCart}><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>{t('cart.go')}</b><strong>{money(total)}</strong></> : <span>{t('cart.placeholder')}</span>}</button>
+    {settingsOpen && <KioskSettingsModal onClose={() => setSettingsOpen(false)} />}
   </main>;
 }
 
@@ -414,7 +471,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
       if (!paymentRequestIdRef.current) paymentRequestIdRef.current = uniqueRequestId('payment');
       const started = transactionRef.current
         ? await pollPosPayment(transactionRef.current, controller.signal)
-        : await startPosPayment({ clientRequestId: paymentRequestIdRef.current, paymentMethod: selectedMethod, amount: total, lines: cart, signal: controller.signal });
+        : await startPosPayment({ clientRequestId: paymentRequestIdRef.current, paymentMethod: selectedMethod, amount: total, lines: cart, signal: controller.signal, terminalSerial: getKioskTerminalSerial() ?? undefined });
       if (controller.signal.aborted) return;
       transactionRef.current = started.id || started.externalId || transactionRef.current;
       paymentReferenceRef.current = started.paymentReference || started.externalId || paymentReferenceRef.current;
