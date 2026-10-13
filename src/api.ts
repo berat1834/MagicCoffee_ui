@@ -1,4 +1,4 @@
-import type { CartLine, Catalog, Fulfillment, KioskConfig } from './types';
+import type { CartLine, Catalog, Fulfillment, KioskConfig, KioskProfileStatus } from './types';
 import { getActiveKioskId } from './kioskProfiles';
 
 const FORBIDDEN_PROJECT_MARKER = ['full', 'moon'].join('');
@@ -53,7 +53,25 @@ export type PosPaymentResult = {
   message?: string | null;
   externalId?: string;
   paymentReference?: string;
+  // POS onay bilgileri (API ödeme kaydında varsa). Tam kart numarası gelmez/yazdırılmaz.
+  authCode?: string | null;
+  approvalCode?: string | null;
+  cardLast4?: string | null;
+  maskedPan?: string | null;
+  rrn?: string | null;
 };
+
+/** Ödeme sonucundan fişe basılabilecek onay bilgilerini çıkarır (yalnız son 4 hane). */
+export function paymentApproval(result: PosPaymentResult | null | undefined) {
+  if (!result) return undefined;
+  const digits = String(result.cardLast4 ?? result.maskedPan ?? '').replace(/[^0-9]/g, '');
+  const approval = {
+    authCode: String(result.authCode ?? result.approvalCode ?? '').trim() || undefined,
+    cardLast4: digits ? digits.slice(-4) : undefined,
+    rrn: String(result.rrn ?? '').trim() || undefined,
+  };
+  return approval.authCode || approval.cardLast4 || approval.rrn ? approval : undefined;
+}
 
 export function uniqueRequestId(prefix: string) {
   const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -74,6 +92,40 @@ export async function fetchCatalog(language: 'tr' | 'en' = 'tr', sectionId?: str
   const response = await fetchWithTimeout(apiUrl(`/api/catalog?${params.toString()}`), { headers: kioskHeaders() }, 20000);
   if (!response.ok) throw new Error(await errorDetail(response, 'Menü şu anda yüklenemiyor.'));
   return response.json() as Promise<Catalog>;
+}
+
+/** Kurulum ekranı için 17 kioskun özeti (POS atanmış mı, seri numarasının son 4 hanesi). */
+export async function fetchKioskProfiles(): Promise<KioskProfileStatus[]> {
+  const response = await fetchWithTimeout(apiUrl('/api/kiosk/profiles'), undefined, 15000);
+  if (!response.ok) throw new Error(await errorDetail(response, 'Kiosk listesi alınamadı.'));
+  return response.json() as Promise<KioskProfileStatus[]>;
+}
+
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
+const POS_SAVE_FALLBACKS: Record<number, string> = {
+  400: 'POS seri numarası 12 haneli olmalıdır.',
+  403: 'PIN hatalı.',
+  404: 'Kiosk bulunamadı.',
+  409: 'Bu POS cihazı başka bir kioska atanmış.',
+  429: 'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.',
+};
+
+/** Seçilen kioskun Castles POS seri numarasını yönetici PIN'iyle kaydeder. */
+export async function saveKioskPos(kioskId: string, adminPin: string, posSerial: string): Promise<void> {
+  const response = await fetchWithTimeout(apiUrl('/api/kiosk/pos'), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Kiosk-Id': kioskId, 'X-Kiosk-Admin-Pin': adminPin },
+    body: JSON.stringify({ posSerial }),
+  }, 20000);
+  if (!response.ok) {
+    const fallback = POS_SAVE_FALLBACKS[response.status] ?? 'POS cihazı kaydedilemedi. Lütfen tekrar deneyin.';
+    throw new ApiError(await errorDetail(response, fallback), response.status);
+  }
 }
 
 export async function startPosPayment(args: {

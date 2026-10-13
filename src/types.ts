@@ -62,6 +62,15 @@ export type KioskConfig = {
   sections: SectionSummary[];
 };
 
+export type KioskProfileStatus = {
+  id: string;
+  name: string;
+  featuredSectionId: string;
+  active: boolean;
+  posConfigured: boolean;
+  posSerialLast4?: string | null;
+};
+
 export type Catalog = {
   brand: { name: string; currency: string; version?: string };
   language?: 'tr' | 'en';

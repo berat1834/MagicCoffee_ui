@@ -51,6 +51,15 @@ public class UsbPrinterPlugin extends Plugin {
   private static final Typeface TEXT_TYPEFACE = Typeface.create("sans-serif-medium", Typeface.NORMAL);
   private static final Typeface LABEL_TYPEFACE = Typeface.create("sans-serif", Typeface.BOLD);
   private static final int BOARDING_PASS_LENGTH_DOTS = 150 * 8;
+  private static final long USB_PERMISSION_WAIT_MS = 20000;
+  /** Bilinen ESC/POS fiş yazıcıları (VID, PID). Bulunamazsa USB yazıcı sınıfındaki ilk cihaz seçilir. */
+  private static final int[][] KNOWN_RECEIPT_PRINTERS = new int[][] {
+    { 0x0519, 0x2013 }, // Masung IP1000
+    { 0x0416, 0x5011 }, // Brightek POS80 (ZC_356 kiosk)
+    { 0x0483, 0x5743 }, // Genel ESC/POS (STM tabanlı)
+    { 0x0fe6, 0x811e }, // Genel ESC/POS (ICS Advent)
+    { 0x1fc9, 0x2016 }, // Genel ESC/POS (NXP tabanlı)
+  };
 
   private UsbManager usbManager;
   private UsbDeviceConnection connection;
@@ -67,7 +76,6 @@ public class UsbPrinterPlugin extends Plugin {
           UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
           if (device != null && intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
             Log.d(TAG, "USB permission granted for device vid=" + device.getVendorId() + " pid=" + device.getProductId());
-            openDeviceAndPrepareEndpoint(device);
           } else {
             Log.w(TAG, "USB permission denied or device null");
           }
@@ -239,6 +247,10 @@ public class UsbPrinterPlugin extends Plugin {
       String paymentReference = receiptText(call.getString("paymentReference", "-"));
       String language = receiptText(call.getString("language", "tr"));
       String currency = receiptText(call.getString("currency", "TL"));
+      String kioskName = receiptText(call.getString("kioskName", ""));
+      String authCode = receiptText(call.getString("authCode", ""));
+      String cardLast4 = receiptText(call.getString("cardLast4", ""));
+      String rrn = receiptText(call.getString("rrn", ""));
       Double subtotalValue = call.getDouble("subtotal");
       Double totalValue = call.getDouble("total");
       double total = totalValue != null ? totalValue : 0.0;
@@ -246,7 +258,7 @@ public class UsbPrinterPlugin extends Plugin {
       JSArray items = call.getArray("items");
       if (items == null) items = new JSArray();
 
-      receipt = drawOrderReceiptBitmap(orderNumber, createdAt, fulfillment, paymentMethod, paymentReference, language, currency, subtotal, total, items);
+      receipt = drawOrderReceiptBitmap(orderNumber, createdAt, kioskName, paymentMethod, paymentReference, authCode, cardLast4, rrn, language, currency, subtotal, total, items);
       writeOrderReceiptBitmap(receipt);
 
       JSObject ret = new JSObject();
@@ -254,12 +266,30 @@ public class UsbPrinterPlugin extends Plugin {
       ret.put("vendorId", currentDevice != null ? currentDevice.getVendorId() : 0);
       ret.put("productId", currentDevice != null ? currentDevice.getProductId() : 0);
       call.resolve(ret);
-      Log.d(TAG, "Magic Coffee order receipt printed. order=" + orderNumber);
+      Log.d(TAG, "MagicPay Kiosk order receipt printed. order=" + orderNumber);
     } catch (Exception e) {
       Log.e(TAG, "Order receipt print error", e);
       call.reject("Sipariş fişi yazdırılamadı: " + e.getMessage());
     } finally {
       if (receipt != null && !receipt.isRecycled()) receipt.recycle();
+    }
+  }
+
+  /** Yönetici menüsündeki "Test Fişi Yazdır": yazıcı algılamayı satış yapmadan doğrular. */
+  @PluginMethod
+  public void printTestReceipt(PluginCall call) {
+    if (!preparePrinter(call)) return;
+    try {
+      printTestReceiptBitmap(call.getString("kioskName", ""));
+      JSObject ret = new JSObject();
+      ret.put("success", true);
+      ret.put("vendorId", currentDevice != null ? currentDevice.getVendorId() : 0);
+      ret.put("productId", currentDevice != null ? currentDevice.getProductId() : 0);
+      ret.put("deviceName", currentDevice != null && currentDevice.getProductName() != null ? currentDevice.getProductName() : "");
+      call.resolve(ret);
+    } catch (Exception e) {
+      Log.e(TAG, "Test receipt print error", e);
+      call.reject("Test fişi yazdırılamadı: " + e.getMessage());
     }
   }
 
@@ -581,30 +611,28 @@ public class UsbPrinterPlugin extends Plugin {
 
   private void directPrintTestReceipt(Intent intent) throws Exception {
     ensurePrinterPreparedForBackgroundPrint();
+    String kioskName = intent != null ? intent.getStringExtra("kioskName") : null;
+    printTestReceiptBitmap(kioskName == null ? "" : kioskName);
+  }
 
-    String orderCode = intent != null ? intent.getStringExtra("orderCode") : null;
-    if (orderCode == null || orderCode.trim().isEmpty()) orderCode = "MC-TEST";
-
+  private void printTestReceiptBitmap(String kioskName) throws Exception {
     JSArray items = new JSArray();
-    JSONObject coffee = new JSONObject();
-    coffee.put("name", "Caffe Latte");
-    coffee.put("quantity", 1);
-    coffee.put("unitPrice", 92.0);
-    coffee.put("details", "Boyut: Orta | Süt: Yulaf Sütü");
-    items.put(coffee);
-    JSONObject menu = new JSONObject();
-    menu.put("name", "Krem Peynirli Bagel");
-    menu.put("quantity", 1);
-    menu.put("unitPrice", 250.0);
-    menu.put("details", "Ekstra: Krem Peynir");
-    items.put(menu);
-    JSONObject sauce = new JSONObject();
-    sauce.put("name", "Extra Shot");
-    sauce.put("quantity", 2);
-    sauce.put("unitPrice", 20.0);
-    items.put(sauce);
+    JSONObject first = new JSONObject();
+    first.put("name", "Test Ürünü (Kahve)");
+    first.put("quantity", 1);
+    first.put("unitPrice", 92.0);
+    first.put("category", "Kahve");
+    first.put("details", "Boyut: Orta");
+    items.put(first);
+    JSONObject second = new JSONObject();
+    second.put("name", "Test Tişört");
+    second.put("quantity", 1);
+    second.put("unitPrice", 399.0);
+    second.put("category", "Giyim");
+    second.put("details", "Beden: M");
+    items.put(second);
 
-    Bitmap bmp = drawOrderReceiptBitmap(orderCode, "", "Restoranda", "Kredi / Banka Kartı", "TEST-REF", "tr", "TL", 382.0, 382.0, items);
+    Bitmap bmp = drawOrderReceiptBitmap("TEST-0000", "", kioskName, "Kredi Kartı", "TEST", "", "", "", "tr", "TL", 491.0, 491.0, items, true);
     try {
       writeOrderReceiptBitmap(bmp);
     } finally {
@@ -624,17 +652,41 @@ public class UsbPrinterPlugin extends Plugin {
   private Bitmap drawOrderReceiptBitmap(
     String orderNumber,
     String createdAt,
-    String fulfillment,
+    String kioskName,
     String paymentMethod,
     String paymentReference,
+    String authCode,
+    String cardLast4,
+    String rrn,
     String language,
     String currency,
     double subtotal,
     double total,
     JSArray items
   ) throws Exception {
+    return drawOrderReceiptBitmap(orderNumber, createdAt, kioskName, paymentMethod, paymentReference, authCode, cardLast4, rrn, language, currency, subtotal, total, items, false);
+  }
+
+  /** 80 mm (576 nokta) ESC/POS raster fiş. Türkçe karakterler bitmap olarak çizildiği için kod sayfası sorunu yoktur. */
+  private Bitmap drawOrderReceiptBitmap(
+    String orderNumber,
+    String createdAt,
+    String kioskName,
+    String paymentMethod,
+    String paymentReference,
+    String authCode,
+    String cardLast4,
+    String rrn,
+    String language,
+    String currency,
+    double subtotal,
+    double total,
+    JSArray items,
+    boolean testReceipt
+  ) throws Exception {
+    final boolean en = "en".equals(language);
     final int width = 576;
-    final int workingHeight = Math.max(1300, 680 + (items != null ? items.length() * 170 : 0));
+    final int workingHeight = Math.max(1400, 760 + (items != null ? items.length() * 200 : 0));
     final int ink = Color.BLACK;
     final int paper = Color.WHITE;
     final float left = 28;
@@ -648,89 +700,103 @@ public class UsbPrinterPlugin extends Plugin {
     paint.setDither(true);
     paint.setSubpixelText(true);
     paint.setColor(ink);
+
+    // Marka başlığı: MAGICPAY KIOSK + kiosk adı.
     paint.setStyle(Paint.Style.STROKE);
     paint.setStrokeWidth(3);
-
-    // Compact monochrome coffee cup emblem.
-    RectF emblem = new RectF(left, 22, left + 66, 88);
-    canvas.drawRoundRect(emblem, 14, 14, paint);
-    canvas.drawRoundRect(new RectF(left + 12, 43, left + 49, 72), 5, 5, paint);
-    canvas.drawArc(new RectF(left + 42, 47, left + 61, 68), 270, 180, false, paint);
-    canvas.drawLine(left + 16, 78, left + 55, 78, paint);
-
+    canvas.drawRoundRect(new RectF(left, 22, left + 66, 88), 14, 14, paint);
     paint.setStyle(Paint.Style.FILL);
     paint.setTypeface(DISPLAY_TYPEFACE);
-    paint.setTextSize(34);
-    canvas.drawText("MAGIC", 112, 51, paint);
-    paint.setTextSize(20);
-    paint.setLetterSpacing(.12f);
-    canvas.drawText("COFFEE", 114, 80, paint);
+    paint.setTextSize(30);
+    drawReceiptCenteredText(canvas, paint, "MP", left + 33, 66);
+    paint.setTextSize(32);
+    canvas.drawText("MAGICPAY", 112, 52, paint);
+    paint.setTextSize(19);
+    paint.setLetterSpacing(.18f);
+    canvas.drawText("KIOSK", 114, 80, paint);
     paint.setLetterSpacing(0);
 
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(15);
-    drawReceiptRightText(canvas, paint, "en".equals(language) ? "ORDER RECEIPT" : "SİPARİŞ FİŞİ", right, 45);
-    paint.setTypeface(TEXT_TYPEFACE);
-    paint.setTextSize(12);
-    drawReceiptRightText(canvas, paint, "%100 COFFEE  •  %100 MAGIC", right, 70);
+    drawReceiptRightText(canvas, paint, testReceipt ? (en ? "TEST RECEIPT" : "TEST FİŞİ") : (en ? "ORDER RECEIPT" : "SİPARİŞ FİŞİ"), right, 45);
+    if (!kioskName.isEmpty()) {
+      paint.setTypeface(TEXT_TYPEFACE);
+      paint.setTextSize(15);
+      drawReceiptRightText(canvas, paint, ellipsizeToWidth(paint, kioskName, 250), right, 72);
+    }
 
     paint.setStrokeWidth(4);
     canvas.drawLine(left, 106, right, 106, paint);
     paint.setStrokeWidth(1);
     canvas.drawLine(left, 113, right, 113, paint);
 
-    float y = 142;
+    // Büyük sipariş numarası.
+    float y = 146;
     paint.setTypeface(LABEL_TYPEFACE);
-    paint.setTextSize(13);
-    drawReceiptCenteredText(canvas, paint, "en".equals(language) ? "ORDER NUMBER" : "SİPARİŞ NUMARASI", width / 2f, y);
-    y += 47;
+    paint.setTextSize(14);
+    drawReceiptCenteredText(canvas, paint, en ? "ORDER NUMBER" : "SİPARİŞ NUMARASI", width / 2f, y);
+    y += 62;
     paint.setTypeface(DISPLAY_TYPEFACE);
-    paint.setTextSize(42);
+    paint.setTextSize(60);
     drawReceiptCenteredText(canvas, paint, receiptText(orderNumber), width / 2f, y);
-    y += 25;
-
+    y += 22;
     paint.setStyle(Paint.Style.STROKE);
     paint.setStrokeWidth(3);
-    canvas.drawRoundRect(new RectF(118, 126, width - 118, y + 2), 12, 12, paint);
+    canvas.drawRoundRect(new RectF(70, 124, width - 70, y + 2), 12, 12, paint);
     paint.setStyle(Paint.Style.FILL);
 
-    y += 35;
+    y += 38;
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(12);
-    canvas.drawText("en".equals(language) ? "DATE" : "TARİH", left, y, paint);
-    canvas.drawText("en".equals(language) ? "TIME" : "SAAT", 205, y, paint);
-    canvas.drawText("en".equals(language) ? "ORDER TYPE" : "SİPARİŞ TİPİ", 330, y, paint);
+    canvas.drawText(en ? "DATE" : "TARİH", left, y, paint);
+    canvas.drawText(en ? "TIME" : "SAAT", 230, y, paint);
+    drawReceiptRightText(canvas, paint, en ? "PAYMENT" : "ÖDEME", right, y);
     y += 24;
     paint.setTypeface(TEXT_TYPEFACE);
-    paint.setTextSize(17);
+    paint.setTextSize(18);
     canvas.drawText(receiptDate(createdAt), left, y, paint);
-    canvas.drawText(receiptTime(createdAt), 205, y, paint);
-    drawReceiptRightText(canvas, paint, receiptText(fulfillment), right, y);
+    canvas.drawText(receiptTime(createdAt), 230, y, paint);
+    drawReceiptRightText(canvas, paint, ellipsizeToWidth(paint, receiptText(paymentMethod), 190), right, y);
 
     y += 29;
     drawReceiptDashedRule(canvas, paint, left, right, y);
     y += 29;
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(13);
-    canvas.drawText("en".equals(language) ? "QTY" : "ADET", left, y, paint);
-    canvas.drawText("en".equals(language) ? "ITEM / OPTIONS" : "ÜRÜN / SEÇİMLER", 82, y, paint);
-    drawReceiptRightText(canvas, paint, "en".equals(language) ? "AMOUNT" : "TUTAR", right, y);
+    canvas.drawText(en ? "QTY" : "ADET", left, y, paint);
+    canvas.drawText(en ? "ITEM / OPTIONS" : "ÜRÜN / SEÇİMLER", 82, y, paint);
+    drawReceiptRightText(canvas, paint, en ? "AMOUNT" : "TUTAR", right, y);
     y += 13;
     paint.setStrokeWidth(2);
     canvas.drawLine(left, y, right, y, paint);
     y += 31;
 
     int itemCount = items != null ? items.length() : 0;
+    String currentCategory = null;
     for (int i = 0; i < itemCount; i++) {
       JSONObject item = items.getJSONObject(i);
       int quantity = Math.max(1, item.optInt("quantity", 1));
-      String name = receiptText(item.optString("name", "Ürün"));
+      String name = receiptText(item.optString("name", en ? "Item" : "Ürün"));
       String details = receiptText(item.optString("details", ""));
+      String category = receiptText(item.optString("category", ""));
       double unitPrice = Math.max(0, item.optDouble("unitPrice", 0));
+
+      // Satırlar kategori adıyla gruplanır.
+      if (!category.isEmpty() && !category.equals(currentCategory)) {
+        paint.setTypeface(LABEL_TYPEFACE);
+        paint.setTextSize(15);
+        String heading = category.toUpperCase(en ? java.util.Locale.US : new java.util.Locale("tr", "TR"));
+        canvas.drawText(heading, left, y, paint);
+        float headingEnd = left + paint.measureText(heading) + 10;
+        paint.setStrokeWidth(2);
+        if (headingEnd < right) canvas.drawLine(headingEnd, y - 5, right, y - 5, paint);
+        y += 30;
+        currentCategory = category;
+      }
 
       paint.setTypeface(TEXT_TYPEFACE);
       paint.setTextSize(20);
-      List<String> nameLines = wrapReceiptText(paint, name, 345, 3);
+      List<String> nameLines = wrapReceiptText(paint, name, 330, 3);
       canvas.drawText(quantity + "x", left, y, paint);
       drawReceiptRightText(canvas, paint, moneyText(unitPrice * quantity, currency), right, y);
       for (int lineIndex = 0; lineIndex < nameLines.size(); lineIndex++) {
@@ -739,16 +805,14 @@ public class UsbPrinterPlugin extends Plugin {
       y += Math.max(1, nameLines.size()) * 25;
 
       if (quantity > 1) {
-        paint.setTypeface(TEXT_TYPEFACE);
         paint.setTextSize(14);
-        canvas.drawText(("en".equals(language) ? "Unit: " : "Birim: ") + moneyText(unitPrice, currency), 82, y, paint);
+        canvas.drawText((en ? "Unit: " : "Birim: ") + moneyText(unitPrice, currency), 82, y, paint);
         y += 21;
       }
 
       if (!details.isEmpty()) {
-        paint.setTypeface(TEXT_TYPEFACE);
         paint.setTextSize(15);
-        List<String> detailLines = wrapReceiptText(paint, details, right - 82, 6);
+        List<String> detailLines = wrapReceiptText(paint, details.replace(" | ", " • "), right - 96, 6);
         for (String line : detailLines) {
           canvas.drawText("• " + line, 82, y, paint);
           y += 21;
@@ -757,77 +821,75 @@ public class UsbPrinterPlugin extends Plugin {
 
       y += 9;
       drawReceiptDashedRule(canvas, paint, 82, right, y);
-      y += 23;
+      y += 27;
     }
 
     if (itemCount == 0) {
       paint.setTypeface(TEXT_TYPEFACE);
       paint.setTextSize(17);
-      canvas.drawText("en".equals(language) ? "No order items found." : "Sipariş ürünü bulunamadı.", 82, y, paint);
+      canvas.drawText(en ? "No order items found." : "Sipariş ürünü bulunamadı.", 82, y, paint);
       y += 40;
     }
 
     y += 4;
-    paint.setTypeface(TEXT_TYPEFACE);
-    paint.setTextSize(17);
-    canvas.drawText("en".equals(language) ? "SUBTOTAL" : "ARA TOPLAM", left, y + 24, paint);
-    drawReceiptRightText(canvas, paint, moneyText(subtotal, currency), right, y + 24);
-    y += 47;
     paint.setStyle(Paint.Style.STROKE);
     paint.setStrokeWidth(3);
-    canvas.drawRoundRect(new RectF(left, y, right, y + 70), 10, 10, paint);
+    canvas.drawRoundRect(new RectF(left, y, right, y + 74), 10, 10, paint);
     paint.setStyle(Paint.Style.FILL);
     paint.setTypeface(LABEL_TYPEFACE);
-    paint.setTextSize(19);
-    canvas.drawText("en".equals(language) ? "TOTAL PAID" : "ÖDENEN TOPLAM", left + 18, y + 43, paint);
+    paint.setTextSize(20);
+    canvas.drawText(en ? "TOTAL" : "TOPLAM", left + 18, y + 46, paint);
     paint.setTypeface(DISPLAY_TYPEFACE);
-    paint.setTextSize(29);
-    drawReceiptRightText(canvas, paint, moneyText(total, currency), right - 18, y + 45);
-    y += 101;
+    paint.setTextSize(32);
+    drawReceiptRightText(canvas, paint, moneyText(total, currency), right - 18, y + 49);
+    y += 110;
 
+    // Ödeme ve POS onay bilgileri (yalnız API'den gelenler; tam kart numarası asla yazılmaz).
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(13);
-    canvas.drawText("en".equals(language) ? "PAYMENT" : "ÖDEME", left, y, paint);
+    canvas.drawText(en ? "PAYMENT" : "ÖDEME", left, y, paint);
     paint.setTypeface(TEXT_TYPEFACE);
-    paint.setTextSize(17);
-    canvas.drawText(receiptText(paymentMethod), left, y + 24, paint);
-
+    paint.setTextSize(18);
+    canvas.drawText(receiptText(paymentMethod), left, y + 25, paint);
     paint.setStyle(Paint.Style.STROKE);
     paint.setStrokeWidth(3);
-    canvas.drawRoundRect(new RectF(right - 112, y - 18, right, y + 30), 8, 8, paint);
+    canvas.drawRoundRect(new RectF(right - 118, y - 16, right, y + 32), 8, 8, paint);
     paint.setStyle(Paint.Style.FILL);
     paint.setTypeface(DISPLAY_TYPEFACE);
     paint.setTextSize(19);
-    drawReceiptCenteredText(canvas, paint, "en".equals(language) ? "PAID" : "ÖDENDİ", right - 56, y + 13);
-    y += 54;
-    paint.setTypeface(LABEL_TYPEFACE);
-    paint.setTextSize(12);
-    canvas.drawText("en".equals(language) ? "POS REFERENCE" : "POS REFERANSI", left, y, paint);
-    y += 23;
+    drawReceiptCenteredText(canvas, paint, testReceipt ? "TEST" : (en ? "PAID" : "ÖDENDİ"), right - 59, y + 15);
+    y += 56;
+
+    paint.setTextSize(15);
     paint.setTypeface(TEXT_TYPEFACE);
-    paint.setTextSize(14);
-    canvas.drawText(ellipsizeToWidth(paint, receiptText(paymentReference), right - left), left, y, paint);
-    y += 36;
+    String last4 = cardLast4.replaceAll("[^0-9]", "");
+    if (last4.length() > 4) last4 = last4.substring(last4.length() - 4);
+    if (!last4.isEmpty()) { canvas.drawText((en ? "Card: " : "Kart: ") + "**** **** **** " + last4, left, y, paint); y += 23; }
+    if (!authCode.isEmpty()) { canvas.drawText((en ? "Approval code: " : "Onay kodu: ") + authCode, left, y, paint); y += 23; }
+    if (!rrn.isEmpty()) { canvas.drawText("RRN: " + rrn, left, y, paint); y += 23; }
+    if (!paymentReference.isEmpty()) {
+      paint.setTextSize(13);
+      canvas.drawText(ellipsizeToWidth(paint, (en ? "POS reference: " : "POS referansı: ") + paymentReference, right - left), left, y, paint);
+      y += 23;
+    }
+    y += 12;
 
     paint.setStrokeWidth(4);
     canvas.drawLine(left, y, right, y, paint);
-    y += 41;
+    y += 44;
     paint.setTypeface(DISPLAY_TYPEFACE);
-    paint.setTextSize(27);
-    drawReceiptCenteredText(canvas, paint, "en".equals(language) ? "ENJOY!" : "AFİYET OLSUN!", width / 2f, y);
-    y += 27;
+    paint.setTextSize(28);
+    drawReceiptCenteredText(canvas, paint, en ? "THANK YOU" : "TEŞEKKÜR EDERİZ", width / 2f, y);
+    y += 26;
     paint.setTypeface(TEXT_TYPEFACE);
-    paint.setTextSize(14);
-    drawReceiptCenteredText(canvas, paint, "en".equals(language) ? "Thank you for choosing us." : "Bizi tercih ettiğiniz için teşekkür ederiz.", width / 2f, y);
-    y += 23;
     paint.setTextSize(12);
-    drawReceiptCenteredText(canvas, paint, "en".equals(language) ? "This is not a fiscal receipt." : "Bu belge mali fiş yerine geçmez.", width / 2f, y);
-    y += 29;
+    drawReceiptCenteredText(canvas, paint, en ? "This is not a fiscal receipt." : "Bu belge mali fiş yerine geçmez.", width / 2f, y);
+    y += 27;
     drawReceiptDashedRule(canvas, paint, left, right, y);
     y += 23;
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(11);
-    drawReceiptCenteredText(canvas, paint, "MAGIC COFFEE  •  YENİ KAHVE MOLAN", width / 2f, y);
+    drawReceiptCenteredText(canvas, paint, kioskName.isEmpty() ? "MAGICPAY KIOSK" : "MAGICPAY KIOSK  •  " + kioskName, width / 2f, y);
 
     int finalHeight = Math.min(workingHeight, Math.max(1, (int) Math.ceil(y + 24)));
     Bitmap result = Bitmap.createBitmap(working, 0, 0, width, finalHeight);
@@ -1384,9 +1446,11 @@ public class UsbPrinterPlugin extends Plugin {
   }
 
   private boolean preparePrinter(PluginCall call, boolean preferTsc) {
-    // Optional per-call override for VID/PID
+    // İsteğe bağlı VID/PID; 0 veya yoksa otomatik seçim (bilinen liste, sonra USB yazıcı sınıfı).
     Integer vidOverride = call.getInt("vid");
     Integer pidOverride = call.getInt("pid");
+    if (vidOverride != null && vidOverride == 0) vidOverride = null;
+    if (pidOverride != null && pidOverride == 0) pidOverride = null;
 
     if (connection != null && endpointOut != null && currentDevice != null
       && matchesRequestedPrinter(currentDevice, vidOverride, pidOverride, preferTsc)) {
@@ -1395,36 +1459,53 @@ public class UsbPrinterPlugin extends Plugin {
     }
 
     UsbDevice target = findPrinterDevice(vidOverride, pidOverride, preferTsc);
+    if (target == null && (vidOverride != null || pidOverride != null)) {
+      Log.w(TAG, "Requested printer vid=" + vidOverride + " pid=" + pidOverride + " not found; falling back to auto detection");
+      target = findPrinterDevice(null, null, preferTsc);
+    }
     if (target == null) {
       Log.w(TAG, "No USB printer device found");
-      call.reject("USB yazıcı bulunamadı. Lütfen VID/PID kontrol edin ve kabloyu kontrol edin.");
+      call.reject("USB yazıcı bulunamadı. Yazıcı kablosunu ve gücünü kontrol edin.");
       return false;
     }
 
-    if (!usbManager.hasPermission(target)) {
-      Log.d(TAG, "Requesting USB permission for vid=" + target.getVendorId() + " pid=" + target.getProductId());
-      Intent permIntent = new Intent(ACTION_USB_PERMISSION);
-      // Make broadcast explicit to our own app package for safety on Android 13+
-      permIntent.setPackage(getContext().getPackageName());
-      PendingIntent pi = PendingIntent.getBroadcast(
-        getContext(),
-        0,
-        permIntent,
-        (Build.VERSION.SDK_INT >= 23) ? PendingIntent.FLAG_IMMUTABLE : 0
-      );
-      usbManager.requestPermission(target, pi);
-      call.reject("USB izni gerekli. İzni verdikten sonra tekrar deneyin.");
+    if (!usbManager.hasPermission(target) && !requestPermissionAndWait(target)) {
+      call.reject("USB yazıcı izni verilmedi. İzni verdikten sonra tekrar deneyin.");
       return false;
     }
 
     boolean ok = openDeviceAndPrepareEndpoint(target);
     if (!ok) {
       Log.e(TAG, "Failed to open endpoint");
-      call.reject("Endpoint açılamadı");
+      call.reject("USB yazıcı bağlantısı açılamadı.");
       return false;
     }
-    Log.d(TAG, "Printer prepared successfully");
+    Log.d(TAG, "Printer prepared successfully vid=" + target.getVendorId() + " pid=" + target.getProductId());
     return true;
+  }
+
+  /** İzin ister ve kullanıcı onaylayana kadar (en fazla USB_PERMISSION_WAIT_MS) bekler. Eklenti iş parçacığında çalışır. */
+  private boolean requestPermissionAndWait(UsbDevice target) {
+    Log.d(TAG, "Requesting USB permission for vid=" + target.getVendorId() + " pid=" + target.getProductId());
+    Intent permIntent = new Intent(ACTION_USB_PERMISSION);
+    permIntent.setPackage(getContext().getPackageName());
+    // Android 12+ (API 31): sistem EXTRA_DEVICE / EXTRA_PERMISSION_GRANTED ekleyebilsin diye MUTABLE olmalı.
+    int flags = Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0;
+    PendingIntent pi = PendingIntent.getBroadcast(getContext(), 0, permIntent, flags | PendingIntent.FLAG_UPDATE_CURRENT);
+    usbManager.requestPermission(target, pi);
+    long deadline = System.currentTimeMillis() + USB_PERMISSION_WAIT_MS;
+    while (System.currentTimeMillis() < deadline) {
+      if (usbManager.hasPermission(target)) return true;
+      try {
+        Thread.sleep(250);
+      } catch (InterruptedException interrupted) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
+    boolean granted = usbManager.hasPermission(target);
+    if (!granted) Log.w(TAG, "USB permission not granted in time");
+    return granted;
   }
 
   private UsbDevice findPrinterDevice(Integer vidOverride, Integer pidOverride) {
@@ -1444,12 +1525,31 @@ public class UsbPrinterPlugin extends Plugin {
       if (vidOverride != null || pidOverride != null) {
         boolean vidMatches = vidOverride == null || vid == vidOverride;
         boolean pidMatches = pidOverride == null || pid == pidOverride;
-        if (vidMatches && pidMatches && isPrinterInterfacePresent(device)) return device;
+        if (vidMatches && pidMatches && findBulkOutInterface(device, true) != null) return device;
         else continue;
       }
 
-      if (isPrinterInterfacePresent(device)) {
+      if (findBulkOutInterface(device, true) != null) {
         candidates.add(device);
+      }
+    }
+
+    // Bilinen fiş yazıcıları listedeki sırayla tercih edilir.
+    if (!preferTsc) {
+      for (int[] known : KNOWN_RECEIPT_PRINTERS) {
+        for (UsbDevice candidate : candidates) {
+          if (candidate.getVendorId() == known[0] && candidate.getProductId() == known[1]) {
+            Log.d(TAG, "Selecting known receipt printer vid=" + known[0] + " pid=" + known[1]);
+            return candidate;
+          }
+        }
+      }
+      // Ardından USB yazıcı sınıfında (7) bulk OUT uç noktası olan ilk TSC olmayan cihaz.
+      for (UsbDevice candidate : candidates) {
+        if (!isTscDevice(candidate) && findBulkOutInterface(candidate, false) != null) {
+          Log.d(TAG, "Selecting printer-class device vid=" + candidate.getVendorId() + " pid=" + candidate.getProductId());
+          return candidate;
+        }
       }
     }
 
@@ -1508,10 +1608,9 @@ public class UsbPrinterPlugin extends Plugin {
   }
 
   private boolean isReceiptDevice(UsbDevice device) {
-    // MASUNG IP1000 integrated in the Magic Coffee A12 kiosk.
-    if (device.getVendorId() == 0x0519 && device.getProductId() == 0x2013) return true;
-    // Legacy Brightek POS80 support for compatible kiosk enclosures.
-    if (device.getVendorId() == 0x0416 && device.getProductId() == 0x5011) return true;
+    for (int[] known : KNOWN_RECEIPT_PRINTERS) {
+      if (device.getVendorId() == known[0] && device.getProductId() == known[1]) return true;
+    }
     try {
       String identity = ((device.getManufacturerName() == null ? "" : device.getManufacturerName())
         + " " + (device.getProductName() == null ? "" : device.getProductName())).toLowerCase(java.util.Locale.US);
@@ -1533,6 +1632,29 @@ public class UsbPrinterPlugin extends Plugin {
     }
   }
 
+  /** Bulk OUT uç noktası olan yazıcı sınıfı (7) arayüzü; allowVendor ise üreticiye özel (255) arayüz de kabul edilir. */
+  private UsbInterface findBulkOutInterface(UsbDevice device, boolean allowVendor) {
+    UsbInterface vendorFallback = null;
+    for (int i = 0; i < device.getInterfaceCount(); i++) {
+      UsbInterface intf = device.getInterface(i);
+      boolean printerClass = intf.getInterfaceClass() == UsbConstants.USB_CLASS_PRINTER;
+      boolean vendorClass = intf.getInterfaceClass() == UsbConstants.USB_CLASS_VENDOR_SPEC;
+      if (!printerClass && !(allowVendor && vendorClass)) continue;
+      if (findBulkOut(intf) == null) continue;
+      if (printerClass) return intf;
+      if (vendorFallback == null) vendorFallback = intf;
+    }
+    return vendorFallback;
+  }
+
+  private UsbEndpoint findBulkOut(UsbInterface intf) {
+    for (int i = 0; i < intf.getEndpointCount(); i++) {
+      UsbEndpoint ep = intf.getEndpoint(i);
+      if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_BULK && ep.getDirection() == UsbConstants.USB_DIR_OUT) return ep;
+    }
+    return null;
+  }
+
   private boolean isPrinterInterfacePresent(UsbDevice device) {
     for (int i = 0; i < device.getInterfaceCount(); i++) {
       UsbInterface intf = device.getInterface(i);
@@ -1544,21 +1666,13 @@ public class UsbPrinterPlugin extends Plugin {
     return false;
   }
 
-  private boolean openDeviceAndPrepareEndpoint(UsbDevice device) {
+  private synchronized boolean openDeviceAndPrepareEndpoint(UsbDevice device) {
     closeConnection();
-    currentDevice = device;
 
-    // Pick first matching interface (Printer or Vendor)
-    UsbInterface chosen = null;
-    for (int i = 0; i < device.getInterfaceCount(); i++) {
-      UsbInterface intf = device.getInterface(i);
-      if (intf.getInterfaceClass() == UsbConstants.USB_CLASS_PRINTER
-        || intf.getInterfaceClass() == UsbConstants.USB_CLASS_VENDOR_SPEC) {
-        chosen = intf;
-        break;
-      }
-    }
+    UsbInterface chosen = findBulkOutInterface(device, true);
     if (chosen == null) return false;
+    UsbEndpoint out = findBulkOut(chosen);
+    if (out == null) return false;
 
     UsbDeviceConnection conn = usbManager.openDevice(device);
     if (conn == null) return false;
@@ -1568,26 +1682,12 @@ public class UsbPrinterPlugin extends Plugin {
       return false;
     }
 
-    UsbEndpoint out = null;
-    for (int i = 0; i < chosen.getEndpointCount(); i++) {
-      UsbEndpoint ep = chosen.getEndpoint(i);
-      if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_BULK
-        && ep.getDirection() == UsbConstants.USB_DIR_OUT) {
-        out = ep;
-        break;
-      }
-    }
-
-    if (out == null) {
-      conn.releaseInterface(chosen);
-      conn.close();
-      return false;
-    }
-
+    this.currentDevice = device;
     this.usbInterface = chosen;
     this.connection = conn;
     this.endpointOut = out;
-    Log.d(TAG, "Endpoint prepared. iface=" + chosen.getId() + " outAddr=" + out.getAddress());
+    Log.d(TAG, "Endpoint prepared. vid=" + device.getVendorId() + " pid=" + device.getProductId()
+      + " iface=" + chosen.getId() + " class=" + chosen.getInterfaceClass() + " outAddr=" + out.getAddress());
     return true;
   }
 
