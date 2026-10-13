@@ -1,7 +1,7 @@
 import type { CartLine, Catalog, Fulfillment } from './types';
 
 const FORBIDDEN_PROJECT_MARKER = ['full', 'moon'].join('');
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://magiccoffee-api.onrender.com').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://magiccoffee-api.magicpay.ai').replace(/\/$/, '');
 if (API_BASE_URL.toLowerCase().includes(FORBIDDEN_PROJECT_MARKER)) {
   throw new Error('Kiosk API adresi bu proje icin kullanilamaz.');
 }
