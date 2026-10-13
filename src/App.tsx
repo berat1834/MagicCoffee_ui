@@ -4,7 +4,7 @@ import { ApiError, assetUrl, paymentApproval, cancelPosPayment, fetchCatalog, fe
 import { customizationOptionLabel, customizationStepLabel } from './i18n/catalogLocalization';
 import { SUPPORTED_LANGUAGES, useKioskLanguage, type KioskLanguage } from './i18n/KioskLanguage';
 import { KIOSK_ADMIN_PIN, KIOSK_PROFILES, getActiveKioskId, kioskProfile, sectionIcon, sectionProfile, setActiveKioskId } from './kioskProfiles';
-import { prepareOrderPrinter, printOrderReceiptOnce, printTestReceipt, type ReceiptApproval, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
+import { prepareOrderPrinter, printOrderReceiptOnce, printTestReceipt, receiptRotated, setReceiptRotated, type ReceiptApproval, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
 import { accentThemeVars, applyRootTheme } from './theme';
 import type { CartLine, Catalog, CustomizationStep, Fulfillment, KioskConfig, KioskProfileStatus, Product, Screen, SectionSummary, Selection } from './types';
 
@@ -210,6 +210,7 @@ function AdminPanel({ kioskId, kioskName, onOpenSetup, onClearCart, onResetLangu
   const [pin, setPin] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [testPrint, setTestPrint] = useState<{ busy: boolean; ok?: boolean; message?: string }>({ busy: false });
+  const [rotated, setRotated] = useState(receiptRotated);
   const profile = kioskProfile(kioskId);
   const runTestPrint = async () => {
     setDone(false);
@@ -228,6 +229,7 @@ function AdminPanel({ kioskId, kioskName, onOpenSetup, onClearCart, onResetLangu
         <button className="secondary-button" onClick={() => { onClearCart(); setDone(true); }}><Trash2 /> {t('admin.clearCart')}</button>
         <button className="secondary-button" onClick={() => { onResetLanguage(); setDone(true); }}><Languages /> {t('admin.resetLanguage')}</button>
         <button className="secondary-button" disabled={testPrint.busy} onClick={() => { void runTestPrint(); }}>{testPrint.busy ? <RotateCcw className="spin" /> : <Printer />} {t('admin.testPrint')}</button>
+        <button className="secondary-button" onClick={() => { const next = !rotated; setReceiptRotated(next); setRotated(next); setDone(true); }}><RotateCcw /> {t(rotated ? 'admin.receiptRotateOn' : 'admin.receiptRotateOff')}</button>
       </div>
       {done && <p className="admin-sheet__done"><Check /> {t('admin.done')}</p>}
       {testPrint.message && <p className={testPrint.ok ? 'admin-sheet__done' : 'admin-sheet__fail'}>{testPrint.ok ? <Check /> : <AlertTriangle />}<span>{testPrint.message}</span></p>}

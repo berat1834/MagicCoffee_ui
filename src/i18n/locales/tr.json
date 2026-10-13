@@ -128,5 +128,7 @@
   "setup.later": "POS'u sonra ayarla",
   "setup.saving": "Kaydediliyor...",
   "setup.saveFailed": "POS cihazı kaydedilemedi. Lütfen tekrar deneyin.",
-  "admin.testPrint": "Test Fişi Yazdır"
+  "admin.testPrint": "Test Fişi Yazdır",
+  "admin.receiptRotateOn": "Fiş yönü: Çevrilmiş (değiştir)",
+  "admin.receiptRotateOff": "Fiş yönü: Normal (değiştir)"
 }

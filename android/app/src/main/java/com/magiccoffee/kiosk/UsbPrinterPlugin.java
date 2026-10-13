@@ -259,7 +259,7 @@ public class UsbPrinterPlugin extends Plugin {
       if (items == null) items = new JSArray();
 
       receipt = drawOrderReceiptBitmap(orderNumber, createdAt, kioskName, paymentMethod, paymentReference, authCode, cardLast4, rrn, language, currency, subtotal, total, items);
-      writeOrderReceiptBitmap(receipt);
+      writeOrderReceiptBitmap(receipt, Boolean.TRUE.equals(call.getBoolean("rotate180", true)));
 
       JSObject ret = new JSObject();
       ret.put("success", true);
@@ -280,7 +280,7 @@ public class UsbPrinterPlugin extends Plugin {
   public void printTestReceipt(PluginCall call) {
     if (!preparePrinter(call)) return;
     try {
-      printTestReceiptBitmap(call.getString("kioskName", ""));
+      printTestReceiptBitmap(call.getString("kioskName", ""), Boolean.TRUE.equals(call.getBoolean("rotate180", true)));
       JSObject ret = new JSObject();
       ret.put("success", true);
       ret.put("vendorId", currentDevice != null ? currentDevice.getVendorId() : 0);
@@ -612,10 +612,10 @@ public class UsbPrinterPlugin extends Plugin {
   private void directPrintTestReceipt(Intent intent) throws Exception {
     ensurePrinterPreparedForBackgroundPrint();
     String kioskName = intent != null ? intent.getStringExtra("kioskName") : null;
-    printTestReceiptBitmap(kioskName == null ? "" : kioskName);
+    printTestReceiptBitmap(kioskName == null ? "" : kioskName, intent == null || intent.getBooleanExtra("rotate180", true));
   }
 
-  private void printTestReceiptBitmap(String kioskName) throws Exception {
+  private void printTestReceiptBitmap(String kioskName, boolean rotate180) throws Exception {
     JSArray items = new JSArray();
     JSONObject first = new JSONObject();
     first.put("name", "Test Ürünü (Kahve)");
@@ -634,13 +634,32 @@ public class UsbPrinterPlugin extends Plugin {
 
     Bitmap bmp = drawOrderReceiptBitmap("TEST-0000", "", kioskName, "Kredi Kartı", "TEST", "", "", "", "tr", "TL", 491.0, 491.0, items, true);
     try {
-      writeOrderReceiptBitmap(bmp);
+      writeOrderReceiptBitmap(bmp, rotate180);
     } finally {
       if (!bmp.isRecycled()) bmp.recycle();
     }
   }
 
-  private void writeOrderReceiptBitmap(Bitmap bitmap) throws Exception {
+  /**
+   * Fişi raster olarak basar. Kiosk yazıcısı kâğıdı müşteriye ters yönde verdiğinde (ör. ZC-356 +
+   * Brightek POS80) başlık alt uca düşer; bu yüzden görüntü varsayılan olarak 180° döndürülerek
+   * gönderilir. Yönetim menüsündeki "Fiş yönünü çevir" ayarı rotate180=false gönderir.
+   */
+  private void writeOrderReceiptBitmap(Bitmap bitmap, boolean rotate180) throws Exception {
+    Bitmap output = bitmap;
+    if (rotate180) {
+      Matrix matrix = new Matrix();
+      matrix.postRotate(180);
+      output = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+    }
+    try {
+      writeRasterReceipt(output);
+    } finally {
+      if (output != bitmap && !output.isRecycled()) output.recycle();
+    }
+  }
+
+  private void writeRasterReceipt(Bitmap bitmap) throws Exception {
     bulkWrite(new byte[] { 0x1B, '@' });
     bulkWrite(new byte[] { 0x1B, 'a', 0x01 });
     bulkWriteRasterBitmap(bitmap);

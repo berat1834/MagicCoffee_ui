@@ -13,7 +13,7 @@ type ReceiptPrintStatus = 'printed' | 'skipped' | 'failed';
 type ReceiptPrinterResponse = { success: boolean; vendorId?: number; productId?: number; deviceName?: string };
 type ReceiptPrinterPlugin = {
   prepareReceiptPrinter(options: { vid: number; pid: number }): Promise<ReceiptPrinterResponse>;
-  printTestReceipt(options: { vid: number; pid: number; kioskName: string }): Promise<ReceiptPrinterResponse>;
+  printTestReceipt(options: { vid: number; pid: number; kioskName: string; rotate180: boolean }): Promise<ReceiptPrinterResponse>;
   printOrderReceipt(options: {
     vid: number;
     pid: number;
@@ -21,6 +21,7 @@ type ReceiptPrinterPlugin = {
     createdAt: string;
     fulfillment: string;
     kioskName: string;
+    rotate180: boolean;
     paymentMethod: string;
     paymentReference: string;
     authCode: string;
@@ -106,6 +107,7 @@ export async function printOrderReceiptOnce(args: {
     const response = await UsbPrinter.printOrderReceipt({
       ...AUTO_PRINTER,
       kioskName: args.kioskName,
+      rotate180: receiptRotated(),
       authCode: args.approval?.authCode ?? '',
       cardLast4: args.approval?.cardLast4 ?? '',
       rrn: args.approval?.rrn ?? '',
@@ -145,11 +147,30 @@ export async function printOrderReceiptOnce(args: {
   }
 }
 
+const RECEIPT_ROTATE_KEY = 'magicpay.receiptRotate180';
+
+/** Kiosk yazıcısı kâğıdı ters verdiği için fiş varsayılan olarak 180° döndürülerek basılır. */
+export function receiptRotated(): boolean {
+  try {
+    return localStorage.getItem(RECEIPT_ROTATE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+export function setReceiptRotated(value: boolean) {
+  try {
+    localStorage.setItem(RECEIPT_ROTATE_KEY, value ? 'true' : 'false');
+  } catch {
+    // Ayar saklanamazsa varsayılan (döndürülmüş) kullanılmaya devam eder.
+  }
+}
+
 /** Yönetici menüsü: satış yapmadan yazıcı algılamayı ve baskıyı doğrular. */
 export async function printTestReceipt(kioskName: string): Promise<{ ok: boolean; message: string }> {
   if (!Capacitor.isNativePlatform()) return { ok: false, message: 'Test fişi yalnızca kiosk cihazında yazdırılabilir.' };
   try {
-    const response = await UsbPrinter.printTestReceipt({ ...AUTO_PRINTER, kioskName });
+    const response = await UsbPrinter.printTestReceipt({ ...AUTO_PRINTER, kioskName, rotate180: receiptRotated() });
     const hex = (value?: number) => (value ?? 0).toString(16).padStart(4, '0');
     return { ok: true, message: `Test fişi yazdırıldı (${response.deviceName || 'USB yazıcı'} ${hex(response.vendorId)}:${hex(response.productId)}).` };
   } catch (error) {

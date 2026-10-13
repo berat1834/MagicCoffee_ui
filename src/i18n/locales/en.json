@@ -128,5 +128,7 @@
   "setup.later": "Set up POS later",
   "setup.saving": "Saving...",
   "setup.saveFailed": "The POS terminal could not be saved. Please try again.",
-  "admin.testPrint": "Print Test Receipt"
+  "admin.testPrint": "Print Test Receipt",
+  "admin.receiptRotateOn": "Receipt: Rotated (change)",
+  "admin.receiptRotateOff": "Receipt: Normal (change)"
 }
