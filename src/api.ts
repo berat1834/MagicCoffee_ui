@@ -114,6 +114,18 @@ export async function pollPosPayment(transactionId: string, signal?: AbortSignal
   return response.json() as Promise<PosPaymentResult>;
 }
 
+// Kiosk beklemekten vazgeçince (geri tuşu / süre dolması) cihazdaki bekleyen işlem kapatılır.
+export async function cancelPosPayment(transactionId: string): Promise<void> {
+  try {
+    await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}/cancel`), {
+      method: 'POST',
+      headers: KIOSK_IDENTITY_HEADERS,
+    }, 15000);
+  } catch {
+    // Iptal bildirimi ulasmazsa backend kendi zaman asimiyla islemi kapatir.
+  }
+}
+
 export async function submitOrder(args: {
   clientRequestId: string;
   fulfillment: Fulfillment;

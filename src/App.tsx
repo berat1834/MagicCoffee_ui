@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, Cpu, CreditCard, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { assetUrl, fetchCastlesDevices, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type CastlesDeviceOption, type PosPaymentStatus } from './api';
+import { assetUrl, cancelPosPayment, fetchCastlesDevices, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type CastlesDeviceOption, type PosPaymentStatus } from './api';
 import { getKioskTerminalSerial, setKioskTerminalSerial } from './kioskSettings';
 import { customizationOptionLabel, customizationStepLabel } from './i18n/catalogLocalization';
 import { SUPPORTED_LANGUAGES, useKioskLanguage, type KioskLanguage } from './i18n/KioskLanguage';
@@ -451,6 +451,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
         if (temporaryErrors >= 5) throw pollError;
       }
     }
+    if (transactionRef.current) void cancelPosPayment(transactionRef.current);
     throw new Error(t('payment.posTimeout'));
   };
 
@@ -505,6 +506,12 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
   const handleBack = () => {
     if (backDisabled) return;
     requestControllerRef.current?.abort();
+    if (transactionRef.current && !paidResultRef.current) {
+      void cancelPosPayment(transactionRef.current);
+      transactionRef.current = '';
+      paymentReferenceRef.current = '';
+      paymentRequestIdRef.current = '';
+    }
     processingRef.current = false;
     onBack();
   };
