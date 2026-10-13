@@ -1,13 +1,23 @@
-import type { CartLine, Catalog, Fulfillment } from './types';
+import type { CartLine, Catalog, Fulfillment, KioskConfig } from './types';
+import { getActiveKioskId } from './kioskProfiles';
 
 const FORBIDDEN_PROJECT_MARKER = ['full', 'moon'].join('');
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://magiccoffee-api.magicpay.ai').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://magickiosk-api.magicpay.ai').replace(/\/$/, '');
 if (API_BASE_URL.toLowerCase().includes(FORBIDDEN_PROJECT_MARKER)) {
   throw new Error('Kiosk API adresi bu proje icin kullanilamaz.');
 }
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 const REQUEST_TIMEOUT_MS = 10000;
-const KIOSK_IDENTITY_HEADERS = { 'X-MagicCoffee-Kiosk-Fingerprint': 'TEST' };
+/** Her kiosk isteğinde cihazda seçili kiosk kimliği gönderilir (API kiosk profilini buna göre bulur). */
+function kioskHeaders(extra?: Record<string, string>): Record<string, string> {
+  const kioskId = getActiveKioskId();
+  return { ...(kioskId ? { 'X-Kiosk-Id': kioskId } : {}), ...extra };
+}
+
+async function errorDetail(response: Response, fallback: string) {
+  const body = await response.json().catch(() => ({}));
+  return typeof body?.detail === 'string' && body.detail ? body.detail : fallback;
+}
 
 async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -52,21 +62,18 @@ export function uniqueRequestId(prefix: string) {
   return `${prefix}-${random}`;
 }
 
-export async function fetchCatalog(language: 'tr' | 'en' = 'tr'): Promise<Catalog> {
-  const response = await fetchWithTimeout(apiUrl(`/api/catalog?lang=${encodeURIComponent(language)}`), undefined, 20000);
-  if (!response.ok) throw new Error('Menü şu anda yüklenemiyor.');
-  return response.json() as Promise<Catalog>;
+export async function fetchKioskConfig(language: 'tr' | 'en' = 'tr'): Promise<KioskConfig> {
+  const response = await fetchWithTimeout(apiUrl(`/api/kiosk/config?lang=${encodeURIComponent(language)}`), { headers: kioskHeaders() }, 20000);
+  if (!response.ok) throw new Error(await errorDetail(response, 'Kiosk ayarları şu anda yüklenemiyor.'));
+  return response.json() as Promise<KioskConfig>;
 }
 
-export type CastlesDeviceOption = { serial: string; name: string };
-
-export async function fetchCastlesDevices(): Promise<CastlesDeviceOption[]> {
-  const response = await fetchWithTimeout(apiUrl('/api/pos/castles/devices'), { headers: KIOSK_IDENTITY_HEADERS }, 15000);
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail || 'Castles cihaz listesi alınamadı.');
-  }
-  return response.json() as Promise<CastlesDeviceOption[]>;
+export async function fetchCatalog(language: 'tr' | 'en' = 'tr', sectionId?: string): Promise<Catalog> {
+  const params = new URLSearchParams({ lang: language });
+  if (sectionId) params.set('section', sectionId);
+  const response = await fetchWithTimeout(apiUrl(`/api/catalog?${params.toString()}`), { headers: kioskHeaders() }, 20000);
+  if (!response.ok) throw new Error(await errorDetail(response, 'Menü şu anda yüklenemiyor.'));
+  return response.json() as Promise<Catalog>;
 }
 
 export async function startPosPayment(args: {
@@ -75,17 +82,15 @@ export async function startPosPayment(args: {
   amount: number;
   lines: CartLine[];
   signal?: AbortSignal;
-  terminalSerial?: string;
 }): Promise<PosPaymentResult> {
   const response = await fetchWithTimeout(apiUrl('/api/pos/payments'), {
     method: 'POST',
     signal: args.signal,
-    headers: { 'Content-Type': 'application/json', ...KIOSK_IDENTITY_HEADERS },
+    headers: kioskHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       clientRequestId: args.clientRequestId,
       paymentMethod: args.paymentMethod,
       amount: args.amount,
-      terminalSerial: args.terminalSerial ?? null,
       lines: args.lines.map((line) => ({
         productId: line.product.id,
         name: line.product.name,
@@ -95,17 +100,14 @@ export async function startPosPayment(args: {
       })),
     }),
   }, 35000);
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail || 'Ödeme POS cihazına gönderilemedi.');
-  }
+  if (!response.ok) throw new Error(await errorDetail(response, 'Ödeme POS cihazına gönderilemedi.'));
   return response.json() as Promise<PosPaymentResult>;
 }
 
 export async function pollPosPayment(transactionId: string, signal?: AbortSignal): Promise<PosPaymentResult> {
   const response = await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}`), {
     signal,
-    headers: KIOSK_IDENTITY_HEADERS,
+    headers: kioskHeaders(),
   }, 25000);
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -119,7 +121,7 @@ export async function cancelPosPayment(transactionId: string): Promise<void> {
   try {
     await fetchWithTimeout(apiUrl(`/api/pos/payments/${encodeURIComponent(transactionId)}/cancel`), {
       method: 'POST',
-      headers: KIOSK_IDENTITY_HEADERS,
+      headers: kioskHeaders(),
     }, 15000);
   } catch {
     // Iptal bildirimi ulasmazsa backend kendi zaman asimiyla islemi kapatir.
@@ -138,7 +140,7 @@ export async function submitOrder(args: {
 }): Promise<{ number: string; created_at?: string }> {
   const response = await fetchWithTimeout(apiUrl('/api/orders'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: kioskHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       clientRequestId: args.clientRequestId,
       fulfillment: args.fulfillment,
@@ -170,7 +172,7 @@ export async function recordReceiptStatus(orderNumber: string, payload: {
 }) {
   const response = await fetchWithTimeout(apiUrl(`/api/orders/${encodeURIComponent(orderNumber)}/receipt`), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: kioskHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error('Fiş durumu kaydedilemedi.');

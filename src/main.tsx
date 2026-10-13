@@ -26,6 +26,13 @@ function syncKioskViewport() {
 
   root.classList.toggle('android-kiosk', usesLargeKioskLayout);
   root.style.setProperty('--viewport-height', `${viewportHeight}px`);
+  // Yeni ekranlar (açılış, ana menü, kurulum) için tasarım birimi: 430px mantıksal genişliğe göre 1 birim.
+  // Yakınlaştırılmış (zoom) dikey düzende 1px, büyük Android kioskta gerçek ölçek, yatayda yüksekliğe göre.
+  const designUnit = !isPortraitLayout
+    ? Math.min(2, Math.max(1, viewportHeight / 600))
+    : usesLargeKioskLayout ? viewportWidth / logicalWidth : 1;
+  root.style.setProperty('--u', `${designUnit}px`);
+  root.style.setProperty('--uz', String(designUnit));
 
   if (!isPortraitLayout) {
     root.classList.remove('portrait-kiosk');

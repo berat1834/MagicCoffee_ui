@@ -9,7 +9,7 @@ const UI_TRANSLATIONS = Object.fromEntries(
 ) as Record<string, string>;
 
 Object.assign(UI_TRANSLATIONS, {
-  'MAGIC COFFEE': 'MAGIC COFFEE',
+  'MAGICPAY KIOSK': 'MAGICPAY KIOSK',
   'Menü': 'Menu',
   'Kategorini seç': 'Choose a category',
   'Fiyata dahil': 'Included',

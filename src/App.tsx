@@ -1,15 +1,20 @@
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, Cpu, CreditCard, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { createPortal } from 'react-dom';
-import { assetUrl, cancelPosPayment, fetchCastlesDevices, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type CastlesDeviceOption, type PosPaymentStatus } from './api';
-import { getKioskTerminalSerial, setKioskTerminalSerial } from './kioskSettings';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, CreditCard, Delete, House, Languages, Lock, Minus, Plus, RotateCcw, Settings, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { assetUrl, cancelPosPayment, fetchCatalog, fetchKioskConfig, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type PosPaymentStatus } from './api';
 import { customizationOptionLabel, customizationStepLabel } from './i18n/catalogLocalization';
 import { SUPPORTED_LANGUAGES, useKioskLanguage, type KioskLanguage } from './i18n/KioskLanguage';
+import { KIOSK_ADMIN_PIN, KIOSK_PROFILES, getActiveKioskId, kioskProfile, sectionIcon, sectionProfile, setActiveKioskId } from './kioskProfiles';
 import { prepareOrderPrinter, printOrderReceiptOnce, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
-import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen, Selection } from './types';
+import { accentThemeVars, applyRootTheme } from './theme';
+import type { CartLine, Catalog, CustomizationStep, Fulfillment, KioskConfig, Product, Screen, SectionSummary, Selection } from './types';
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
 const AUDIO_BASE = '/audio/kiosk/';
+const FULFILLMENT: Fulfillment = 'package';
+const IDLE_RESET_MS = 120000;
+const ADMIN_TAP_COUNT = 5;
+const ADMIN_TAP_WINDOW_MS = 3000;
+const ADMIN_LONG_PRESS_MS = 3000;
 const CUSTOMIZER_HERO_IMAGES: Record<string, string> = {
   'latte': '/images/products/heroes/latte-hero.webp',
   'americano': '/images/products/heroes/americano-hero.webp',
@@ -32,6 +37,8 @@ const CUSTOMIZER_HERO_IMAGES: Record<string, string> = {
   'menengic-kahvesi': '/images/products/heroes/menengic-kahvesi-hero.webp',
   'dibek-kahvesi': '/images/products/heroes/dibek-kahvesi-hero.webp',
 };
+
+type SectionLookup = (sectionId?: string | null) => SectionSummary | null;
 
 function useKioskAudio(enabled: boolean, language: KioskLanguage) {
   const current = useRef<HTMLAudioElement | null>(null);
@@ -95,12 +102,6 @@ function preloadCatalogImages(catalog: Catalog) {
     if (heroImage) urls.add(assetUrl(heroImage));
   });
   for (const url of urls) {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = url;
-    document.head.appendChild(link);
-
     const image = new Image();
     image.loading = 'eager';
     image.decoding = 'async';
@@ -121,115 +122,228 @@ function addToCartNotice(product: Product, nextCartQuantity: number, t: ReturnTy
   return null;
 }
 
-function BrandMark({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
+function SectionGlyph({ icon, className }: { icon?: string | null; className?: string }) {
+  const Icon = sectionIcon(icon);
+  return <Icon className={className} aria-hidden="true" />;
+}
+
+function BrandMark({ light = false, compact = false, icon }: { light?: boolean; compact?: boolean; icon?: string | null }) {
   return <div className={`brand-mark ${light ? 'brand-mark--light' : ''} ${compact ? 'brand-mark--compact' : ''}`}>
-    <span className="brand-mark__star"><Coffee /></span><span className="brand-mark__copy"><b>MAGIC</b><em>COFFEE</em></span>
+    <span className="brand-mark__star"><SectionGlyph icon={icon} /></span><span className="brand-mark__copy"><b>MAGICPAY</b><em>KIOSK</em></span>
   </div>;
 }
 
-const SETTINGS_TAP_COUNT = 5;
-const SETTINGS_TAP_WINDOW_MS = 3000;
-
-function KioskSettingsModal({ onClose }: { onClose: () => void }) {
-  const [devices, setDevices] = useState<CastlesDeviceOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [saved, setSaved] = useState(() => getKioskTerminalSerial());
-  const [selected, setSelected] = useState<string | null>(saved);
-  useEffect(() => {
-    let cancelled = false;
-    fetchCastlesDevices()
-      .then((list) => { if (!cancelled) setDevices(list); })
-      .catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Castles cihaz listesi alınamadı.'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-  const save = () => { setKioskTerminalSerial(selected); setSaved(selected); onClose(); };
-  const savedDevice = devices.find((device) => device.serial === saved);
-  return createPortal(<div className="kiosk-settings-backdrop" onMouseDown={onClose} onClick={(event) => event.stopPropagation()}>
-    <section className="kiosk-settings page-enter" role="dialog" aria-modal="true" aria-label="Kiosk ayarları" onMouseDown={(event) => event.stopPropagation()}>
-      <button className="icon-button" onClick={onClose} aria-label="Kapat"><X /></button>
-      <span className="kiosk-settings__icon"><Cpu /></span>
-      <small>KİOSK AYARLARI</small>
-      <h2>Castles POS cihazı</h2>
-      <p>Bu kioskun ödemeleri göndereceği cihazı seçin. Şu an: <b>{saved ? `${savedDevice?.name ?? 'Cihaz'} (${saved})` : 'Seçili değil'}</b></p>
-      {error && <div className="payment__error">{error}</div>}
-      <div className="kiosk-settings__options" role="radiogroup" aria-label="Castles cihazı">
-        <button type="button" role="radio" aria-checked={selected === null} className={selected === null ? 'selected' : ''} onClick={() => setSelected(null)}><b>Seçili değil</b><small>Sunucudaki varsayılan cihaz kullanılır</small>{selected === null && <i><Check /></i>}</button>
-        {loading && <div className="kiosk-settings__hint"><RotateCcw className="spin" /> Cihazlar yükleniyor...</div>}
-        {!loading && !error && !devices.length && <div className="kiosk-settings__hint">Panelde tanımlı aktif Castles cihazı yok.</div>}
-        {devices.map((device) => <button type="button" key={device.serial} role="radio" aria-checked={selected === device.serial} className={selected === device.serial ? 'selected' : ''} onClick={() => setSelected(device.serial)}><b>{device.name}</b><small>{device.serial}</small>{selected === device.serial && <i><Check /></i>}</button>)}
-        {!loading && saved && !savedDevice && selected === saved && <div className="kiosk-settings__hint">Kayıtlı cihaz ({saved}) artık listede yok; yeni bir cihaz seçin.</div>}
-      </div>
-      <div className="kiosk-settings__actions">
-        <button className="secondary-button" onClick={onClose}>Kapat</button>
-        <button className="primary-button" onClick={save}><Check /> Kaydet</button>
-      </div>
-    </section>
-  </div>, document.body);
+/** Görselsiz ürünler için vurgu renginde yumuşak gradyan + büyük emoji (görselli karolarla aynı kutu). */
+function ProductVisual({ product, className }: { product: Product; className: string }) {
+  if (product.image) return <div className={className}><img src={assetUrl(product.image)} alt={product.name} draggable={false} loading="eager" decoding="async" /></div>;
+  return <div className={`${className} ${className}--emoji emoji-tile`}><span>{product.emoji || '🛍️'}</span></div>;
 }
 
-function Intro({ onStart, loading }: { onStart: () => void; loading: boolean }) {
+/** Gizli yönetici erişimi: 3 sn içinde 5 dokunuş veya 3 sn basılı tutma. */
+function AdminTrigger({ onTrigger, children, className = '' }: { onTrigger: () => void; children: ReactNode; className?: string }) {
+  const tapsRef = useRef<number[]>([]);
+  const timerRef = useRef<number | null>(null);
+  const clearTimer = () => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = null;
+  };
+  useEffect(() => clearTimer, []);
+  const onPointerDown = (event: ReactPointerEvent) => {
+    event.stopPropagation();
+    clearTimer();
+    timerRef.current = window.setTimeout(() => { timerRef.current = null; tapsRef.current = []; onTrigger(); }, ADMIN_LONG_PRESS_MS);
+  };
+  const onPointerUp = (event: ReactPointerEvent) => {
+    event.stopPropagation();
+    if (timerRef.current === null) return;
+    clearTimer();
+    const now = Date.now();
+    tapsRef.current = [...tapsRef.current.filter((at) => now - at <= ADMIN_TAP_WINDOW_MS), now];
+    if (tapsRef.current.length >= ADMIN_TAP_COUNT) {
+      tapsRef.current = [];
+      onTrigger();
+    }
+  };
+  return <span className={`admin-trigger ${className}`} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerLeave={clearTimer} onPointerCancel={clearTimer} onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()}>{children}</span>;
+}
+
+function PinPad({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
   const { t } = useKioskLanguage();
-  return <button type="button" className="intro" onClick={onStart} aria-label={t('intro.startAria')}>
-    <div className="intro__grain" />
-    <header className="intro__header"><BrandMark light /></header>
-    <img className="intro__burger intro__coffee-art" src="/images/products/cappuccino.png" alt="Magic Coffee Cappuccino" />
-    <div className="intro__copy"><p>{t('intro.eyebrow')}</p><h1>{t('intro.title')}<br /><i>{t('intro.magic')}</i> {t('intro.titleEnd')}</h1><span>{t('intro.subtitle')}</span></div>
-    <div className="intro__touch"><span>{loading ? t('intro.loading') : t('intro.touch')}</span><ArrowRight /></div>
-  </button>;
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState(false);
+  const length = Math.max(4, KIOSK_ADMIN_PIN.length);
+  const press = (digit: string) => {
+    setError(false);
+    const next = (pin + digit).slice(0, length);
+    setPin(next);
+    if (next.length === KIOSK_ADMIN_PIN.length) {
+      if (next === KIOSK_ADMIN_PIN) onSuccess();
+      else { setError(true); setPin(''); }
+    }
+  };
+  return <section className="admin-sheet page-enter" role="dialog" aria-modal="true" aria-label={t('admin.pinTitle')}>
+    <button className="icon-button admin-sheet__close" onClick={onClose} aria-label={t('common.close')}><X /></button>
+    <span className="admin-sheet__icon"><Lock /></span>
+    <h2>{t('admin.pinTitle')}</h2>
+    <p>{t('admin.pinHint')}</p>
+    <div className={`pin-dots ${error ? 'pin-dots--error' : ''}`} aria-live="polite">{Array.from({ length: KIOSK_ADMIN_PIN.length }, (_, index) => <i key={index} className={index < pin.length ? 'filled' : ''} />)}</div>
+    {error && <div className="payment__error">{t('admin.pinWrong')}</div>}
+    <div className="pin-keypad">
+      {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => <button type="button" key={digit} onClick={() => press(digit)}>{digit}</button>)}
+      <button type="button" className="pin-keypad__muted" onClick={() => { setPin(''); setError(false); }}>{t('admin.clear')}</button>
+      <button type="button" onClick={() => press('0')}>0</button>
+      <button type="button" className="pin-keypad__muted" onClick={() => setPin((value) => value.slice(0, -1))} aria-label={t('admin.delete')}><Delete /></button>
+    </div>
+  </section>;
 }
 
-function OrderType({ soundOn, onToggleSound, onContinue }: { soundOn: boolean; onToggleSound: () => void; onContinue: (type: Fulfillment) => void }) {
-  const { language, setLanguage, t } = useKioskLanguage();
-  const [languagePickerOpen, setLanguagePickerOpen] = useState(false);
-  return <main className="order-type page-enter">
-    <div className="order-type__actions">
-      <div className="language-control">
-        <button type="button" className={`utility-button utility-button--language ${languagePickerOpen ? 'utility-button--open' : ''}`} onClick={() => setLanguagePickerOpen((open) => !open)} aria-haspopup="menu" aria-expanded={languagePickerOpen} aria-controls="language-picker" aria-label={t('language.choose')}><span><Languages /></span><small>{t('language.title')}</small><b>{t('language.current')}</b></button>
-        {languagePickerOpen && <><button type="button" className="language-picker__backdrop" onClick={() => setLanguagePickerOpen(false)} aria-label={t('common.close')} tabIndex={-1} /><section id="language-picker" className="language-picker" role="menu" aria-label={t('language.choose')}><header className="language-picker__header"><span><Languages /></span><div><small>{t('language.title')}</small><b>{t('language.choose')}</b></div></header><div className="language-picker__options">{SUPPORTED_LANGUAGES.map((option) => { const selected = option === language; return <button type="button" role="menuitemradio" aria-checked={selected} key={option} className={selected ? 'selected' : ''} onClick={() => { setLanguage(option); setLanguagePickerOpen(false); }}><span>{option.toUpperCase()}</span><b>{option === 'tr' ? t('language.turkish') : t('language.english')}</b>{selected && <i><Check /></i>}</button>; })}</div></section></>}
+function AdminPanel({ kioskId, onChangeKiosk, onClearCart, onResetLanguage, onClose }: { kioskId: string | null; onChangeKiosk: () => void; onClearCart: () => void; onResetLanguage: () => void; onClose: () => void }) {
+  const { t } = useKioskLanguage();
+  const [unlocked, setUnlocked] = useState(false);
+  const [done, setDone] = useState(false);
+  const profile = kioskProfile(kioskId);
+  return <div className="admin-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    {!unlocked ? <PinPad onSuccess={() => setUnlocked(true)} onClose={onClose} /> : <section className="admin-sheet page-enter" role="dialog" aria-modal="true" aria-label={t('admin.menuTitle')}>
+      <button className="icon-button admin-sheet__close" onClick={onClose} aria-label={t('common.close')}><X /></button>
+      <span className="admin-sheet__icon"><Settings /></span>
+      <h2>{t('admin.menuTitle')}</h2>
+      <p>{t('admin.current', { name: profile ? `${profile.label} · ${profile.section.name} (${profile.id})` : '-' })}</p>
+      <div className="admin-sheet__actions">
+        <button className="primary-button" onClick={onChangeKiosk}><Settings /> {t('admin.changeKiosk')}</button>
+        <button className="secondary-button" onClick={() => { onClearCart(); setDone(true); }}><Trash2 /> {t('admin.clearCart')}</button>
+        <button className="secondary-button" onClick={() => { onResetLanguage(); setDone(true); }}><Languages /> {t('admin.resetLanguage')}</button>
       </div>
-      <button className="utility-button utility-button--sound" onClick={onToggleSound}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>{t('audio.title')}</small><b>{soundOn ? t('audio.on') : t('audio.off')}</b></button>
+      {done && <p className="admin-sheet__done"><Check /> {t('admin.done')}</p>}
+    </section>}
+  </div>;
+}
+
+function KioskSetup({ currentId, onCancel }: { currentId: string | null; onCancel?: () => void }) {
+  const { t } = useKioskLanguage();
+  const [selected, setSelected] = useState<string | null>(currentId);
+  const [error, setError] = useState('');
+  const profile = kioskProfile(selected);
+  const save = () => {
+    if (!selected) return;
+    if (!setActiveKioskId(selected)) { setError(t('setup.storageError')); return; }
+    window.location.reload();
+  };
+  return <main className="kiosk-setup page-enter" style={accentThemeVars(profile?.section.accent ?? '#334155')}>
+    <header className="kiosk-setup__header">
+      <span className="kiosk-setup__badge"><Settings /></span>
+      <div><h1>{t('setup.title')}</h1><p>{t('setup.subtitle')}</p></div>
+      {onCancel && <button className="icon-button" onClick={onCancel} aria-label={t('common.close')}><X /></button>}
+    </header>
+    <div className="kiosk-setup__grid">
+      {KIOSK_PROFILES.map((item) => {
+        const isSelected = item.id === selected;
+        return <button type="button" key={item.id} className={`kiosk-tile ${isSelected ? 'kiosk-tile--selected' : ''}`} style={accentThemeVars(item.section.accent)} onClick={() => setSelected(item.id)} aria-pressed={isSelected}>
+          <span className="kiosk-tile__icon"><SectionGlyph icon={item.section.icon} /></span>
+          <b>{item.label}</b>
+          <small>{item.section.name}</small>
+          {item.id === currentId && <em>{t('setup.current')}</em>}
+          {isSelected && <i><Check /></i>}
+        </button>;
+      })}
     </div>
-    <section className="order-type__content">
-      <h1>{t('orderType.title')}</h1><p>{t('orderType.subtitle')}</p>
-      <div className="order-type__grid">
-        <button onClick={() => onContinue('restaurant')}><span><UtensilsCrossed /></span><b>{t('orderType.restaurant')}</b><small>{t('orderType.restaurantHint')}</small></button>
-        <button onClick={() => onContinue('package')}><span><ShoppingBag /></span><b>{t('orderType.package')}</b><small>{t('orderType.packageHint')}</small></button>
-      </div>
-    </section>
+    <footer className="kiosk-setup__footer">
+      <div><b>{profile ? t('setup.confirm', { kiosk: profile.label, section: profile.section.name }) : t('setup.title')}</b><small>{error || t('setup.confirmHint')}</small></div>
+      <button className="primary-button" disabled={!selected} onClick={save}><Check /> {t('setup.save')}</button>
+    </footer>
   </main>;
 }
 
-function ProductCard({ product, quantity, onClick }: { product: Product; quantity: number; onClick: () => void }) {
+function LanguageControl() {
+  const { language, setLanguage, t } = useKioskLanguage();
+  const [open, setOpen] = useState(false);
+  return <div className="language-control">
+    <button type="button" className={`utility-button utility-button--language ${open ? 'utility-button--open' : ''}`} onClick={() => setOpen((value) => !value)} aria-haspopup="menu" aria-expanded={open} aria-controls="language-picker" aria-label={t('language.choose')}><span><Languages /></span><small>{t('language.title')}</small><b>{t('language.current')}</b></button>
+    {open && <><button type="button" className="language-picker__backdrop" onClick={() => setOpen(false)} aria-label={t('common.close')} tabIndex={-1} /><section id="language-picker" className="language-picker" role="menu" aria-label={t('language.choose')}><header className="language-picker__header"><span><Languages /></span><div><small>{t('language.title')}</small><b>{t('language.choose')}</b></div></header><div className="language-picker__options">{SUPPORTED_LANGUAGES.map((option) => { const selected = option === language; return <button type="button" role="menuitemradio" aria-checked={selected} key={option} className={selected ? 'selected' : ''} onClick={() => { setLanguage(option); setOpen(false); }}><span>{option.toUpperCase()}</span><b>{option === 'tr' ? t('language.turkish') : t('language.english')}</b>{selected && <i><Check /></i>}</button>; })}</div></section></>}
+  </div>;
+}
+
+function Intro({ config, onStart, loading, onAdmin }: { config: KioskConfig | null; onStart: () => void; loading: boolean; onAdmin: () => void }) {
+  const { t } = useKioskLanguage();
+  const featured = config?.sections.find((section) => section.id === config.kiosk.featuredSectionId) ?? null;
+  const orbit = (config?.sections ?? []).filter((section) => section.id !== featured?.id).slice(0, 8);
+  return <div className="hub-intro" role="button" tabIndex={0} onClick={onStart} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onStart(); }} aria-label={t('intro.startAria')}>
+    <div className="hub-intro__rays" />
+    <header className="hub-intro__header"><AdminTrigger onTrigger={onAdmin}><BrandMark light icon={featured?.icon} /></AdminTrigger></header>
+    <div className="hub-intro__art" aria-hidden="true">
+      <div className="hub-intro__orbit">{orbit.map((section, index) => <span key={section.id} style={{ '--i': index, '--n': orbit.length, ...accentThemeVars(section.accent) } as CSSProperties}><SectionGlyph icon={section.icon} /></span>)}</div>
+      <div className="hub-intro__core"><SectionGlyph icon={featured?.icon} /></div>
+    </div>
+    <div className="hub-intro__copy">
+      <p>{t('intro.eyebrow')}</p>
+      <h1>{t('intro.title')} <i>{t('intro.magic')}</i>{t('intro.titleEnd')}</h1>
+      <span>{config?.kiosk.name ? `${config.kiosk.name} · ` : ''}{t('intro.subtitle')}</span>
+    </div>
+    <div className="hub-intro__touch"><span>{loading ? t('intro.loading') : t('intro.touch')}</span><ArrowRight /></div>
+  </div>;
+}
+
+function Home({ config, cart, soundOn, onToggleSound, onSection, onCart, onAdmin }: { config: KioskConfig; cart: CartLine[]; soundOn: boolean; onToggleSound: () => void; onSection: (sectionId: string) => void; onCart: () => void; onAdmin: () => void }) {
+  const { t } = useKioskLanguage();
+  const sections = [...config.sections].sort((left, right) => (left.position ?? 0) - (right.position ?? 0));
+  const featured = sections.find((section) => section.id === config.kiosk.featuredSectionId) ?? sections[0];
+  const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  return <main className={`home page-enter ${itemCount ? 'home--with-cart' : ''}`}>
+    <header className="home__header">
+      <AdminTrigger onTrigger={onAdmin} className="home__identity">
+        <span className="home__identity-icon"><SectionGlyph icon={featured?.icon} /></span>
+        <span className="home__identity-copy"><small>{config.brand?.name || 'MagicPay Kiosk'}</small><b>{config.kiosk.name}</b></span>
+      </AdminTrigger>
+      <div className="home__utilities order-type__actions">
+        <LanguageControl />
+        <button className="utility-button utility-button--sound" onClick={onToggleSound}><span className={soundOn ? 'green' : 'red'}>{soundOn ? <Volume2 /> : <VolumeX />}</span><small>{t('audio.title')}</small><b>{soundOn ? t('audio.on') : t('audio.off')}</b></button>
+      </div>
+    </header>
+    <div className="home__scroll">
+      <div className="home__greeting"><small>{t('home.welcome')}</small><h1>{t('home.title')}</h1></div>
+      {featured && <button type="button" className="featured-card" style={accentThemeVars(featured.accent)} onClick={() => onSection(featured.id)}>
+        <span className="featured-card__glow" />
+        <span className="featured-card__icon"><SectionGlyph icon={featured.icon} /></span>
+        <span className="featured-card__copy">
+          <small>{t('home.featured')}</small>
+          <b>{featured.name}</b>
+          {featured.tagline && <em>{featured.tagline}</em>}
+          <span className="featured-card__cta">{t('home.orderNow')} <ArrowRight /></span>
+        </span>
+        <span className="featured-card__count">{t('home.productCount', { count: featured.productCount ?? 0 })}</span>
+      </button>}
+      <div className="home__section-title"><h2>{t('home.allCategories')}</h2><p>{t('home.allCategoriesHint')}</p></div>
+      <div className="section-grid">
+        {sections.map((section) => <button type="button" key={section.id} className={`section-card ${section.id === featured?.id ? 'section-card--featured' : ''}`} style={accentThemeVars(section.accent)} onClick={() => onSection(section.id)}>
+          <span className="section-card__icon"><SectionGlyph icon={section.icon} /></span>
+          <b>{section.name}</b>
+          {section.tagline && <small>{section.tagline}</small>}
+          <em>{t('home.productCount', { count: section.productCount ?? 0 })}</em>
+        </button>)}
+      </div>
+    </div>
+    {itemCount > 0 && <button className="cart-bar cart-bar--ready home__cart" onClick={onCart}><span className="cart-bar__icon"><ShoppingBag /><i>{itemCount}</i></span><b>{t('cart.go')}</b><strong>{money(total)}</strong></button>}
+  </main>;
+}
+
+function ProductCard({ product, quantity, categoryName }: { product: Product; quantity: number; categoryName?: string }) {
   const { t } = useKioskLanguage();
   const disabled = product.available === false;
   return <button type="button" className={`product-card ${disabled ? 'product-card--disabled' : ''}`} data-product-id={product.id} data-clickable="product" disabled={disabled}>
     {product.popular && <span className="product-card__popular">{t('product.popular')}</span>}{quantity > 0 && <span className="product-card__quantity">{quantity}</span>}
-    <div className={`product-card__visual ${product.image ? '' : 'product-card__visual--emoji'}`}>{product.image ? <img src={assetUrl(product.image)} alt={product.name} draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{product.emoji || '☕'}</span>}</div>
-    <div className="product-card__body"><small>{disabled ? product.unavailableReason : product.categoryId}</small><h3>{product.name}</h3><p>{product.description}</p><b>{money(product.price)}</b></div>
+    <ProductVisual product={product} className="product-card__visual" />
+    <div className="product-card__body"><small>{disabled ? product.unavailableReason : categoryName}</small><h3>{product.name}</h3><p>{product.description}</p><b>{money(product.price)}</b></div>
   </button>;
 }
 
-function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }: { catalog: Catalog; cart: CartLine[]; onProduct: (product: Product) => void; onHeaderCart: () => void; onBottomCart: () => void }) {
+function CatalogScreen({ catalog, section, cart, onProduct, onHome, onHeaderCart, onBottomCart, onAdmin }: { catalog: Catalog; section: SectionSummary | null; cart: CartLine[]; onProduct: (product: Product) => void; onHome: () => void; onHeaderCart: () => void; onBottomCart: () => void; onAdmin: () => void }) {
   const { t } = useKioskLanguage();
   const [activeCategory, setActiveCategory] = useState('all');
   const [categoryScroll, setCategoryScroll] = useState({ left: false, right: false });
   const categoriesRef = useRef<HTMLElement>(null);
   const productsRef = useRef<HTMLElement>(null);
   const lastPointerHandledRef = useRef(0);
-  // Logoya 3 saniye içinde 5 kez dokunulunca gizli kiosk ayarları açılır.
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const brandTapsRef = useRef<number[]>([]);
-  const handleBrandTap = (event: MouseEvent<HTMLSpanElement>) => {
-    event.stopPropagation();
-    const now = Date.now();
-    brandTapsRef.current = [...brandTapsRef.current.filter((at) => now - at <= SETTINGS_TAP_WINDOW_MS), now];
-    if (brandTapsRef.current.length >= SETTINGS_TAP_COUNT) {
-      brandTapsRef.current = [];
-      setSettingsOpen(true);
-    }
-  };
+  const categoryNames = useMemo(() => new Map(catalog.categories.map((category) => [category.id, category.name])), [catalog.categories]);
   const visibleCategories = activeCategory === 'all' ? catalog.categories : catalog.categories.filter((item) => item.id === activeCategory);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
@@ -239,6 +353,7 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
     if (!categories) return;
     categories.scrollBy({ left: direction * categories.clientWidth * 0.75, behavior: 'smooth' });
   };
+  useEffect(() => { setActiveCategory('all'); productsRef.current?.scrollTo({ top: 0 }); }, [section?.id]);
   useEffect(() => {
     const categories = categoriesRef.current;
     if (!categories) return;
@@ -285,9 +400,7 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
         if (event.type === 'pointerup') lastPointerHandledRef.current = now;
         if (event.cancelable) event.preventDefault();
         onProduct(product);
-        return;
       }
-
     };
 
     document.addEventListener('pointerup', handleNativePress, { capture: true });
@@ -297,19 +410,21 @@ function CatalogScreen({ catalog, cart, onProduct, onHeaderCart, onBottomCart }:
       document.removeEventListener('click', handleNativePress, { capture: true });
     };
   }, [catalog.products, onBottomCart, onHeaderCart, onProduct]);
-  return <main className="catalog page-enter">
-    <header className="catalog__header"><span className="catalog__brand-tap" onClick={handleBrandTap}><BrandMark light compact /></span><button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button></header>
+  return <main className="catalog page-enter" style={accentThemeVars(section?.accent)}>
+    <header className="catalog__header">
+      <button type="button" className="catalog__home" onClick={onHome}><ArrowLeft /><span>{t('catalog.backHome')}</span></button>
+      <AdminTrigger onTrigger={onAdmin} className="catalog__section"><span className="catalog__section-icon"><SectionGlyph icon={section?.icon} /></span><b>{section?.name ?? catalog.section?.name ?? ''}</b></AdminTrigger>
+      <button className="header-cart" data-clickable="cart" onClick={onHeaderCart}><span><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span><span><b>{t('cart.myCart')}</b><small>{itemCount ? money(total) : t('cart.empty')}</small></span></button>
+    </header>
     <div className="category-menu"><div className="category-menu__label"><small>{t('catalog.menu')}</small><b>{t('catalog.chooseCategory')}</b></div><div className="categories-wrap">{categoryScroll.left && <button type="button" className="categories-wrap__hint categories-wrap__hint--prev" onClick={() => scrollCategories(-1)} aria-label={t('catalog.moreCategories')}><ArrowLeft /></button>}<nav ref={categoriesRef} className="categories" aria-label={t('catalog.categoriesAria')}><button className={activeCategory === 'all' ? 'active' : ''} onClick={() => selectCategory('all')}>{t('catalog.all')}</button>{catalog.categories.map((item) => <button key={item.id} className={item.id === activeCategory ? 'active' : ''} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav>{categoryScroll.right && <button type="button" className="categories-wrap__hint categories-wrap__hint--next" onClick={() => scrollCategories(1)} aria-label={t('catalog.moreCategories')}><ArrowRight /></button>}</div></div>
-    <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{visibleCategories.map((category) => {
+    <section ref={productsRef} className={`products ${activeCategory === 'all' ? 'products--all' : ''}`}>{!catalog.products.length && <p className="catalog__empty">{t('catalog.empty')}</p>}{visibleCategories.map((category) => {
       const categoryProducts = catalog.products.filter((product) => product.categoryId === category.id);
-      return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} {t(categoryProducts.length === 1 ? 'catalog.product' : 'catalog.products')}</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} quantity={cart.filter((line) => line.product.id === product.id).reduce((sum, line) => sum + line.quantity, 0)} onClick={() => onProduct(product)} />)}</div></section>;
+      if (!categoryProducts.length) return null;
+      return <section className="category-section" key={category.id}><div className="section-heading"><h1>{category.name}</h1><span /><small>{categoryProducts.length} {t(categoryProducts.length === 1 ? 'catalog.product' : 'catalog.products')}</small></div><div className="product-grid">{categoryProducts.map((product) => <ProductCard key={product.id} product={product} categoryName={categoryNames.get(product.categoryId)} quantity={productCartQuantity(cart, product.id)} />)}</div></section>;
     })}</section>
     <button className={`cart-bar ${itemCount ? 'cart-bar--ready' : ''}`} data-clickable="cart" onClick={onBottomCart}><span className="cart-bar__icon"><ShoppingBag />{itemCount > 0 && <i>{itemCount}</i>}</span>{itemCount ? <><b>{t('cart.go')}</b><strong>{money(total)}</strong></> : <span>{t('cart.placeholder')}</span>}</button>
-    {settingsOpen && <KioskSettingsModal onClose={() => setSettingsOpen(false)} />}
   </main>;
 }
-
-
 
 function hasActiveCustomization(product: Product) {
   return Object.values(product.customization ?? {}).some((step) => step.enabled && step.options.some((option) => option.enabled !== false));
@@ -340,7 +455,7 @@ function cartLineKey(product: Product, selection?: Selection) {
   return `${product.id}-${JSON.stringify(normalized)}`;
 }
 
-function Customizer({ product, initial, onClose, onSave }: { product: Product; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
+function Customizer({ product, section, initial, onClose, onSave }: { product: Product; section: SectionSummary | null; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
   const { language, t } = useKioskLanguage();
   const steps = Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled && step.options.some((option) => option.enabled !== false));
   const [choices, setChoices] = useState<Record<string, string[]>>(() => normalizeChoices(initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false && option.available !== false).map((option) => option.id)])), steps));
@@ -363,9 +478,9 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   if (!current) return null;
   const [stepId, step] = current;
   const heroImage = CUSTOMIZER_HERO_IMAGES[product.id] ?? product.image;
-  return <main className="customizer page-enter" role="dialog" aria-modal="true">
+  return <main className="customizer page-enter" role="dialog" aria-modal="true" style={accentThemeVars(section?.accent)}>
     <header><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button><div><small>{t('customizer.prepare')}</small><h2>{product.name}</h2></div><b>{money(unitPrice)}</b></header>
-    <div className="customizer__hero">{heroImage && <img src={assetUrl(heroImage)} alt={product.name} draggable={false} loading="eager" decoding="async" fetchPriority="high" />}<div><span>MAGIC COFFEE</span><b>{customizationStepLabel(language, stepId, step)}</b></div></div>
+    <div className={`customizer__hero ${heroImage ? '' : 'customizer__hero--emoji'}`}>{heroImage ? <img src={assetUrl(heroImage)} alt={product.name} draggable={false} loading="eager" decoding="async" /> : <span>{product.emoji || '🛍️'}</span>}<div><span>{(section?.name ?? 'MagicPay Kiosk').toLocaleUpperCase(language === 'tr' ? 'tr-TR' : 'en-US')}</span><b>{customizationStepLabel(language, stepId, step)}</b></div></div>
     <nav className="steps">{steps.map(([id, item], stepIndex) => <button key={id} className={stepIndex === index ? 'active' : ''} onClick={() => setIndex(stepIndex)}><i>{stepIndex + 1}</i>{customizationStepLabel(language, id, item)}</button>)}</nav>
     <div className="customizer__content"><div className="customizer__title"><span><small>{t('customizer.selection')}</small><h3>{customizationStepLabel(language, stepId, step)}</h3></span><p>{step.required ? t('customizer.required') : t('customizer.optional')}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled !== false).map((option) => {
@@ -376,13 +491,17 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
   </main>;
 }
 
-function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }: { cart: CartLine[]; onClose: () => void; onQuantity: (key: string, delta: number) => void; onDelete: (key: string) => void; onEdit: (line: CartLine) => void; onCheckout: () => void }) {
-  const { t } = useKioskLanguage();
+function CartDrawer({ cart, sectionOf, onClose, onQuantity, onDelete, onEdit, onCheckout }: { cart: CartLine[]; sectionOf: SectionLookup; onClose: () => void; onQuantity: (key: string, delta: number) => void; onDelete: (key: string) => void; onEdit: (line: CartLine) => void; onCheckout: () => void }) {
+  const { language, t } = useKioskLanguage();
   const total = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const upper = (value: string) => value.toLocaleUpperCase(language === 'tr' ? 'tr-TR' : 'en-US');
   return <main className="cart-drawer page-enter">
     <header><span><ShoppingBag /></span><div><h2>{t('cart.myCart')}</h2><small>{t('cart.lineCount', { count: itemCount })}</small></div><button className="icon-button" onClick={onClose} aria-label={t('common.close')}><X /></button></header>
-    <div className="cart-drawer__items">{!cart.length && <div className="empty-cart"><ShoppingBag /><h3>{t('cart.emptyLong')}</h3><p>{t('cart.emptyHint')}</p></div>}{cart.map((line) => <article className="cart-line" key={line.key}><div className="cart-line__image">{line.product.image ? <img src={assetUrl(line.product.image)} alt="" draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{line.product.emoji || '☕'}</span>}</div><div className="cart-line__main"><small>MAGIC COFFEE</small><h3>{line.product.name}</h3><p>{Object.values(line.selection?.choices ?? {}).flat().length ? t('cart.customized') : t('cart.standard')}</p><div><button disabled={line.quantity === 1} onClick={() => onQuantity(line.key, -1)}><Minus /></button><b>{line.quantity}</b><button className="plus" onClick={() => onQuantity(line.key, 1)}><Plus /></button>{hasActiveCustomization(line.product) && <button className="edit" onClick={() => onEdit(line)}>{t('cart.edit')}</button>}<button className="delete" onClick={() => onDelete(line.key)}><Trash2 /> {t('cart.delete')}</button></div></div><strong>{money(line.unitPrice * line.quantity)}</strong></article>)}</div>
+    <div className="cart-drawer__items">{!cart.length && <div className="empty-cart"><ShoppingBag /><h3>{t('cart.emptyLong')}</h3><p>{t('cart.emptyHint')}</p></div>}{cart.map((line) => {
+      const section = sectionOf(line.product.sectionId);
+      return <article className="cart-line" key={line.key} style={accentThemeVars(section?.accent)}><ProductVisual product={line.product} className="cart-line__image" /><div className="cart-line__main"><small>{upper(section?.name ?? 'MagicPay Kiosk')}</small><h3>{line.product.name}</h3><p>{Object.values(line.selection?.choices ?? {}).flat().length ? t('cart.customized') : t('cart.standard')}</p><div><button disabled={line.quantity === 1} onClick={() => onQuantity(line.key, -1)}><Minus /></button><b>{line.quantity}</b><button className="plus" onClick={() => onQuantity(line.key, 1)}><Plus /></button>{hasActiveCustomization(line.product) && <button className="edit" onClick={() => onEdit(line)}>{t('cart.edit')}</button>}<button className="delete" onClick={() => onDelete(line.key)}><Trash2 /> {t('cart.delete')}</button></div></div><strong>{money(line.unitPrice * line.quantity)}</strong></article>;
+    })}</div>
     <footer><div><small>{t('cart.total')}</small><b>{money(total)}</b><span>{itemCount} {t('cart.items')}</span></div><button className="primary-button" disabled={!cart.length} onClick={onCheckout}>{t('cart.checkout')}</button></footer>
   </main>;
 }
@@ -391,7 +510,7 @@ const POS_SUCCESS = new Set<PosPaymentStatus>(['COMPLETED', 'PAID', 'SUCCESS', '
 const POS_FAILURE = new Set<PosPaymentStatus>(['FAILED', 'ERROR', 'CANCELLED', 'CANCELED', 'DECLINED']);
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
-function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, onSuccess, onReceiptStatus }: { cart: CartLine[]; fulfillment: Fulfillment; onBack: () => void; onBeginPayment: () => void; onPaymentFailed: () => void; onSuccess: (orderNumber: string) => void; onReceiptStatus: (status: ReceiptPrintStatus) => void }) {
+function Payment({ cart, posConfigured, onBack, onBeginPayment, onPaymentFailed, onSuccess, onReceiptStatus }: { cart: CartLine[]; posConfigured: boolean; onBack: () => void; onBeginPayment: () => void; onPaymentFailed: () => void; onSuccess: (orderNumber: string) => void; onReceiptStatus: (status: ReceiptPrintStatus) => void }) {
   const { language, t } = useKioskLanguage();
   const [method, setMethod] = useState<'card' | 'meal-card' | null>(null);
   const [error, setError] = useState('');
@@ -411,7 +530,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
     setPhase('saving');
     const order = await submitOrder({
       clientRequestId: orderRequestIdRef.current,
-      fulfillment,
+      fulfillment: FULFILLMENT,
       paymentMethod: selectedMethod,
       total,
       lines: cart,
@@ -423,7 +542,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
     const receipt = await printOrderReceiptOnce({
       orderNumber: order.number,
       createdAt: order.created_at ?? new Date().toISOString(),
-      fulfillment,
+      fulfillment: FULFILLMENT,
       paymentMethod: selectedMethod,
       paymentReference: paymentReferenceRef.current,
       language,
@@ -456,7 +575,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
   };
 
   const complete = async (selectedMethod: 'card' | 'meal-card') => {
-    if (processingRef.current) return;
+    if (!posConfigured || processingRef.current) return;
     processingRef.current = true;
     const controller = new AbortController();
     requestControllerRef.current = controller;
@@ -472,7 +591,7 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
       if (!paymentRequestIdRef.current) paymentRequestIdRef.current = uniqueRequestId('payment');
       const started = transactionRef.current
         ? await pollPosPayment(transactionRef.current, controller.signal)
-        : await startPosPayment({ clientRequestId: paymentRequestIdRef.current, paymentMethod: selectedMethod, amount: total, lines: cart, signal: controller.signal, terminalSerial: getKioskTerminalSerial() ?? undefined });
+        : await startPosPayment({ clientRequestId: paymentRequestIdRef.current, paymentMethod: selectedMethod, amount: total, lines: cart, signal: controller.signal });
       if (controller.signal.aborted) return;
       transactionRef.current = started.id || started.externalId || transactionRef.current;
       paymentReferenceRef.current = started.paymentReference || started.externalId || paymentReferenceRef.current;
@@ -516,20 +635,27 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
     onBack();
   };
   const statusText = phase === 'starting' ? t('payment.sendingToPos') : phase === 'waiting' ? t('payment.waitingForCard') : phase === 'saving' ? t('payment.savingOrder') : '';
-  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={handleBack} disabled={backDisabled} aria-label={t('common.back')}><ArrowLeft /></button><div><h1>{t('payment.title')}</h1><p>{t('payment.hint')}</p></div></header><div className="payment-options"><button className={method === 'card' ? 'selected' : ''} disabled={busy} onClick={() => complete('card')}><span><CreditCard /></span><b>{t('payment.card')}</b><small>{t('payment.cardHint')}</small></button><button className={method === 'meal-card' ? 'selected' : ''} disabled={busy} onClick={() => complete('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>{t('payment.mealCard')}</b><small>{t('payment.mealCardHint')}</small></button></div>{statusText && <div className="payment__status" role="status" aria-live="polite"><span className="spin" />{statusText}</div>}{error && <div className="payment__error">{error}<button onClick={() => method && complete(method)}>{t('payment.retryPos')}</button></div>}</section><aside className="payment__summary"><div className="amount"><small>{t('payment.amount')}</small><b>{money(total)}</b></div><div className="summary-card"><header><b>{t('payment.summary')}</b><span>{itemCount} {t(itemCount === 1 ? 'cart.item' : 'cart.items')}</span></header><div className="summary-card__lines">{cart.map((line) => <div key={line.key}><span><b>{line.product.name}</b><small>{line.quantity} {t('cart.quantityUnit')}</small></span><strong>{money(line.unitPrice * line.quantity)}</strong></div>)}</div><div className="summary-total"><span>{t('payment.total')}</span><b>{money(total)}</b></div><p className="order-type-mini"><UtensilsCrossed /> {fulfillment === 'restaurant' ? t('orderType.restaurant') : t('orderType.package')}</p></div></aside></main>;
+  const methodsDisabled = busy || !posConfigured;
+  return <main className="payment page-enter"><section className="payment__methods"><header><button className="icon-button" onClick={handleBack} disabled={backDisabled} aria-label={t('common.back')}><ArrowLeft /></button><div><h1>{t('payment.title')}</h1><p>{t('payment.hint')}</p></div></header>{!posConfigured && <div className="payment__pos-warning" role="alert"><AlertTriangle /><span>{t('payment.posNotConfigured')}</span></div>}<div className="payment-options"><button className={method === 'card' ? 'selected' : ''} disabled={methodsDisabled} onClick={() => complete('card')}><span><CreditCard /></span><b>{t('payment.card')}</b><small>{t('payment.cardHint')}</small></button><button className={method === 'meal-card' ? 'selected' : ''} disabled={methodsDisabled} onClick={() => complete('meal-card')}><span className="dark"><UtensilsCrossed /></span><b>{t('payment.mealCard')}</b><small>{t('payment.mealCardHint')}</small></button></div>{statusText && <div className="payment__status" role="status" aria-live="polite"><span className="spin" />{statusText}</div>}{error && <div className="payment__error">{error}<button onClick={() => method && complete(method)}>{t('payment.retryPos')}</button></div>}</section><aside className="payment__summary"><div className="amount"><small>{t('payment.amount')}</small><b>{money(total)}</b></div><div className="summary-card"><header><b>{t('payment.summary')}</b><span>{itemCount} {t(itemCount === 1 ? 'cart.item' : 'cart.items')}</span></header><div className="summary-card__lines">{cart.map((line) => <div key={line.key}><span><b>{line.product.name}</b><small>{line.quantity} {t('cart.quantityUnit')}</small></span><strong>{money(line.unitPrice * line.quantity)}</strong></div>)}</div><div className="summary-total"><span>{t('payment.total')}</span><b>{money(total)}</b></div></div></aside></main>;
 }
 
-function Success({ orderNumber, receiptStatus, onRestart }: { orderNumber: string; receiptStatus: ReceiptPrintStatus | 'printing'; onRestart: () => void }) {
+function Success({ orderNumber, receiptStatus, icon, onRestart }: { orderNumber: string; receiptStatus: ReceiptPrintStatus | 'printing'; icon?: string | null; onRestart: () => void }) {
   const { t } = useKioskLanguage();
-  return <main className="success page-enter"><BrandMark /><span className="success__check"><CheckCircle2 /></span><p>{t('success.received')}</p><h1>{t('success.thanks')}</h1><h2>{t('success.preparing')}</h2><div><small>{t('success.number')}</small><b>{orderNumber}</b></div>{receiptStatus === 'printing' && <p className="success__receipt">{t('payment.printingReceipt')}</p>}{receiptStatus === 'printed' && <p className="success__receipt">{t('success.receiptPrinted')}</p>}{receiptStatus === 'failed' && <p className="success__receipt success__receipt--error">{t('success.receiptFailed')}</p>}<button className="primary-button" onClick={onRestart}><RotateCcw /> {t('success.newOrder')}</button></main>;
+  return <main className="success page-enter"><BrandMark icon={icon} /><span className="success__check"><CheckCircle2 /></span><p>{t('success.received')}</p><h1>{t('success.thanks')}</h1><h2>{t('success.preparing')}</h2><div><small>{t('success.number')}</small><b>{orderNumber}</b></div>{receiptStatus === 'printing' && <p className="success__receipt">{t('payment.printingReceipt')}</p>}{receiptStatus === 'printed' && <p className="success__receipt">{t('success.receiptPrinted')}</p>}{receiptStatus === 'failed' && <p className="success__receipt success__receipt--error">{t('success.receiptFailed')}</p>}<button className="primary-button" onClick={onRestart}><RotateCcw /> {t('success.newOrder')}</button></main>;
 }
 
 export default function App() {
   const { language, setLanguage, t } = useKioskLanguage();
+  const [kioskId] = useState(() => getActiveKioskId());
+  const [setupOpen, setSetupOpen] = useState(() => !kioskId);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>('intro');
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [config, setConfig] = useState<KioskConfig | null>(null);
+  const [configError, setConfigError] = useState('');
+  const [configLoading, setConfigLoading] = useState(false);
+  const [catalogs, setCatalogs] = useState<Record<string, Catalog>>({});
   const [catalogError, setCatalogError] = useState('');
-  const [fulfillment, setFulfillment] = useState<Fulfillment>('restaurant');
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customizing, setCustomizing] = useState<Product | null>(null);
   const [editing, setEditing] = useState<CartLine | null>(null);
@@ -537,42 +663,79 @@ export default function App() {
   const [orderNumber, setOrderNumber] = useState('');
   const [receiptStatus, setReceiptStatus] = useState<ReceiptPrintStatus | 'printing'>('printing');
   const [notice, setNotice] = useState('');
-  const [catalogLoading, setCatalogLoading] = useState(false);
   const [startPending, setStartPending] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  const configRequestRef = useRef(0);
   const catalogRequestRef = useRef(0);
   const kioskAudio = useKioskAudio(soundOn, language);
-  const loadCatalog = useCallback(() => {
+
+  const localProfile = kioskProfile(kioskId);
+  const featuredSectionId = config?.kiosk.featuredSectionId ?? localProfile?.section.id ?? null;
+  const sectionOf = useCallback<SectionLookup>((sectionId) => {
+    if (!sectionId) return null;
+    const fromConfig = config?.sections.find((section) => section.id === sectionId);
+    if (fromConfig) return fromConfig;
+    const local = sectionProfile(sectionId);
+    return local ? { id: local.id, name: language === 'en' ? local.nameEn : local.name, tagline: language === 'en' ? local.taglineEn : local.tagline, icon: local.icon, accent: local.accent } : null;
+  }, [config, language]);
+  const featuredSection = sectionOf(featuredSectionId);
+
+  useEffect(() => {
+    applyRootTheme(featuredSection?.accent ?? localProfile?.section.accent);
+  }, [featuredSection?.accent, localProfile?.section.accent]);
+
+  const loadConfig = useCallback(() => {
+    if (!kioskId) return;
+    const requestId = ++configRequestRef.current;
+    setConfigError('');
+    setConfigLoading(true);
+    fetchKioskConfig(language).then((nextConfig) => {
+      if (requestId !== configRequestRef.current) return;
+      setConfig(nextConfig);
+    }).catch((error: Error) => {
+      if (requestId !== configRequestRef.current) return;
+      setConfigError(error.message);
+      setStartPending(false);
+    }).finally(() => {
+      if (requestId === configRequestRef.current) setConfigLoading(false);
+    });
+  }, [kioskId, language]);
+  useEffect(loadConfig, [loadConfig]);
+
+  const catalogKey = activeSectionId ? `${language}:${activeSectionId}` : '';
+  const activeCatalog = catalogKey ? catalogs[catalogKey] ?? null : null;
+  const loadCatalog = useCallback((sectionId: string) => {
     const requestId = ++catalogRequestRef.current;
     const requestedLanguage = language;
     setCatalogError('');
-    setCatalogLoading(true);
-    fetchCatalog(requestedLanguage).then((nextCatalog) => {
-      if (requestId !== catalogRequestRef.current || nextCatalog.language !== requestedLanguage) return;
-      setCatalog(nextCatalog);
+    fetchCatalog(requestedLanguage, sectionId).then((nextCatalog) => {
+      if (nextCatalog.language && nextCatalog.language !== requestedLanguage) return;
+      const products = nextCatalog.products.map((product) => ({ ...product, sectionId: product.sectionId ?? sectionId }));
+      const normalized = { ...nextCatalog, products };
+      setCatalogs((current) => ({ ...current, [`${requestedLanguage}:${sectionId}`]: normalized }));
       setCart((items) => items.map((line) => {
-        const product = nextCatalog.products.find((candidate) => candidate.id === line.product.id);
+        const product = products.find((candidate) => candidate.id === line.product.id);
         return product ? { ...line, product } : line;
       }));
-      preloadCatalogImages(nextCatalog);
+      preloadCatalogImages(normalized);
     }).catch((error: Error) => {
       if (requestId !== catalogRequestRef.current) return;
       setCatalogError(error.message);
-      setStartPending(false);
-    }).finally(() => {
-      if (requestId === catalogRequestRef.current) setCatalogLoading(false);
     });
   }, [language]);
-  useEffect(loadCatalog, [loadCatalog]);
+  useEffect(() => {
+    if (activeSectionId && !catalogs[`${language}:${activeSectionId}`]) loadCatalog(activeSectionId);
+  }, [activeSectionId, catalogs, language, loadCatalog]);
+
   useEffect(() => {
     const refreshOnVisible = () => {
-      if (document.visibilityState === 'visible') loadCatalog();
+      if (document.visibilityState !== 'visible') return;
+      loadConfig();
+      setCatalogs({});
     };
     document.addEventListener('visibilitychange', refreshOnVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', refreshOnVisible);
-    };
-  }, [loadCatalog]);
+    return () => document.removeEventListener('visibilitychange', refreshOnVisible);
+  }, [loadConfig]);
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(''), 3000);
@@ -582,24 +745,31 @@ export default function App() {
     prepareOrderPrinter();
   }, []);
   useEffect(() => {
-    if (startPending && catalog) {
+    if (startPending && config) {
       setStartPending(false);
       kioskAudio.play('welcome.mp3');
-      setScreen('order-type');
+      setScreen('home');
     }
-  }, [catalog, kioskAudio, startPending]);
+  }, [config, kioskAudio, startPending]);
+
   const startOrder = () => {
-    if (catalog) {
+    if (config) {
       kioskAudio.play('welcome.mp3');
-      setScreen('order-type');
+      setScreen('home');
       return;
     }
-    if (catalogError || catalogLoading) loadCatalog();
     setNotice(t('notice.menuWaiting'));
     setStartPending(true);
-    if (!catalogLoading) loadCatalog();
+    if (!configLoading) loadConfig();
   };
-  const addProduct = (product: Product) => {
+  const openSection = (sectionId: string) => {
+    kioskAudio.stop();
+    kioskAudio.play('product-selection-prompt.mp3');
+    setActiveSectionId(sectionId);
+    setCartOpen(null);
+    setScreen('catalog');
+  };
+  const addProduct = useCallback((product: Product) => {
     if (product.available === false) return;
     if (product.stockTrackingEnabled && product.stockQuantity != null && productCartQuantity(cart, product.id) >= product.stockQuantity) {
       setNotice(t('notice.outOfStock', { name: product.name }));
@@ -611,7 +781,7 @@ export default function App() {
     setCart((items) => items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1 } : line) : [...items, { key, product, quantity: 1, unitPrice: product.price }]);
     const nextNotice = addToCartNotice(product, nextQuantity, t);
     if (nextNotice) setNotice(nextNotice);
-  };
+  }, [cart, t]);
   const saveCustomized = (selection: Selection, unitPrice: number) => {
     if (!customizing) return;
     if (!editing && customizing.stockTrackingEnabled && customizing.stockQuantity != null && productCartQuantity(cart, customizing.id) >= customizing.stockQuantity) {
@@ -655,7 +825,10 @@ export default function App() {
     setOrderNumber('');
     setReceiptStatus('printing');
     setCartOpen(null);
+    setCustomizing(null);
+    setEditing(null);
     setNotice('');
+    setActiveSectionId(null);
     setLanguage('tr');
     setScreen('intro');
   }, [kioskAudio, setLanguage]);
@@ -664,17 +837,52 @@ export default function App() {
     const timeout = window.setTimeout(restart, 10000);
     return () => window.clearTimeout(timeout);
   }, [orderNumber, restart, screen]);
+
+  // Boşta kalma: ana menü / katalog / sepet ekranlarında dokunuş olmazsa açılış ekranına dönülür.
+  const idleEligible = !setupOpen && !adminOpen && (screen === 'home' || screen === 'catalog');
+  useEffect(() => {
+    if (!idleEligible) return;
+    let timeout = window.setTimeout(restart, IDLE_RESET_MS);
+    const bump = () => {
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(restart, IDLE_RESET_MS);
+    };
+    const events = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
+    events.forEach((name) => window.addEventListener(name, bump, { passive: true }));
+    return () => {
+      window.clearTimeout(timeout);
+      events.forEach((name) => window.removeEventListener(name, bump));
+    };
+  }, [idleEligible, restart]);
+
+  const goHome = useCallback(() => { kioskAudio.stop(); setCartOpen(null); setScreen('home'); }, [kioskAudio]);
+  const openFullCart = useCallback(() => setCartOpen('full'), []);
+  const openSheetCart = useCallback(() => setCartOpen('sheet'), []);
+  const openAdmin = useCallback(() => setAdminOpen(true), []);
+  const checkout = () => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); };
+  const editLine = (line: CartLine) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); };
+  const deleteLine = (key: string) => setCart((items) => items.filter((line) => line.key !== key));
+  const activeSection = sectionOf(activeSectionId);
+  const adminPanel = adminOpen && <AdminPanel kioskId={kioskId} onClose={() => setAdminOpen(false)} onChangeKiosk={() => { setAdminOpen(false); setSetupOpen(true); }} onClearCart={() => { setCart([]); setCartOpen(null); }} onResetLanguage={() => setLanguage('tr')} />;
+
+  if (setupOpen) {
+    return <div className="app-shell kiosk-no-focus-ring"><KioskSetup currentId={kioskId} onCancel={kioskId ? () => setSetupOpen(false) : undefined} /></div>;
+  }
+
+  const drawer = <CartDrawer cart={cart} sectionOf={sectionOf} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={deleteLine} onEdit={editLine} onCheckout={checkout} />;
   return <div className="app-shell kiosk-no-focus-ring">
-    {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading} />}
-    {screen === 'order-type' && <OrderType soundOn={soundOn} onToggleSound={() => setSoundOn((value) => !value)} onContinue={(type) => { kioskAudio.stop(); kioskAudio.play('product-selection-prompt.mp3'); setFulfillment(type); setScreen('catalog'); }} />}
+    {screen === 'intro' && <Intro config={config} onStart={startOrder} loading={configLoading && !config} onAdmin={openAdmin} />}
     {notice && <div className="stock-toast">{notice}</div>}
-    {customizing && <Customizer product={customizing} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
-    {!customizing && cartOpen !== 'full' && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onHeaderCart={() => setCartOpen('full')} onBottomCart={() => setCartOpen('sheet')} />}
-    {!customizing && cartOpen === 'full' && <CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} />}
-    {!customizing && cartOpen === 'sheet' && <div className="cart-sheet-layer"><button type="button" className="cart-sheet-backdrop" onClick={() => setCartOpen(null)} aria-label={t('common.close')} /><CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} /></div>}
-    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => { kioskAudio.stop(); setScreen('catalog'); setCartOpen('full'); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onReceiptStatus={setReceiptStatus} />}
-    {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} receiptStatus={receiptStatus} onRestart={restart} />}
-    {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>{t('loading.catalogError')}</h2><p>{t('loading.catalogErrorHint')}</p><button className="primary-button" onClick={loadCatalog}>{t('common.retry')}</button></div>}
-    {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>{t('loading.catalog')}</p></div>}
+    {customizing && <Customizer product={customizing} section={sectionOf(customizing.sectionId)} initial={editing?.selection} onClose={() => { setCustomizing(null); setEditing(null); }} onSave={saveCustomized} />}
+    {!customizing && cartOpen !== 'full' && screen === 'home' && config && <Home config={config} cart={cart} soundOn={soundOn} onToggleSound={() => setSoundOn((value) => !value)} onSection={openSection} onCart={openSheetCart} onAdmin={openAdmin} />}
+    {!customizing && cartOpen !== 'full' && screen === 'catalog' && activeCatalog && <CatalogScreen catalog={activeCatalog} section={activeSection} cart={cart} onProduct={addProduct} onHome={goHome} onHeaderCart={openFullCart} onBottomCart={openSheetCart} onAdmin={openAdmin} />}
+    {!customizing && cartOpen === 'full' && drawer}
+    {!customizing && cartOpen === 'sheet' && <div className="cart-sheet-layer"><button type="button" className="cart-sheet-backdrop" onClick={() => setCartOpen(null)} aria-label={t('common.close')} />{drawer}</div>}
+    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} posConfigured={config?.kiosk.posConfigured ?? false} onBack={() => { kioskAudio.stop(); setScreen(activeSectionId ? 'catalog' : 'home'); setCartOpen('full'); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onReceiptStatus={setReceiptStatus} />}
+    {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} receiptStatus={receiptStatus} icon={featuredSection?.icon} onRestart={restart} />}
+    {configError && !config && <div className="load-error"><AdminTrigger onTrigger={openAdmin}><BrandMark icon={featuredSection?.icon} /></AdminTrigger><h2>{t('loading.catalogError')}</h2><p>{configError}</p><p>{t('loading.catalogErrorHint')}</p><button className="primary-button" onClick={loadConfig}>{t('common.retry')}</button></div>}
+    {screen === 'catalog' && !activeCatalog && catalogError && <div className="load-error"><BrandMark icon={activeSection?.icon} /><h2>{t('loading.catalogError')}</h2><p>{catalogError}</p><div className="load-error__actions"><button className="secondary-button" onClick={goHome}><House /> {t('catalog.backHome')}</button><button className="primary-button" onClick={() => activeSectionId && loadCatalog(activeSectionId)}>{t('common.retry')}</button></div></div>}
+    {((screen === 'home' && !config && !configError) || (screen === 'catalog' && !activeCatalog && !catalogError)) && <div className="loading"><BrandMark light icon={(activeSection ?? featuredSection)?.icon} /><span /><p>{t('loading.catalog')}</p></div>}
+    {adminPanel}
   </div>;
 }

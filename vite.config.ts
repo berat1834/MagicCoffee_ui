@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-const API_BASE_URL = 'https://magiccoffee-api.onrender.com';
+const API_BASE_URL = 'https://magickiosk-api.magicpay.ai';
 
 export default defineConfig({
   plugins: [react({ jsxImportSource: '@magiccoffee/i18n-runtime' })],

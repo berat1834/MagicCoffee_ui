@@ -68,7 +68,10 @@ const TURKISH_OPTION_LABELS: Record<string, Record<string, string>> = {
 };
 
 export function customizationStepLabel(language: KioskLanguage, stepId: string, step: CustomizationStep) {
-  return language === 'tr' ? TURKISH_STEP_LABELS[stepId] ?? step.title : step.title;
+  // Ürünün kendi başlığı (ör. "Beden Seçimi", "Numara Seçimi") varsa o kullanılır; yoksa adıma göre varsayılan.
+  const title = step.title?.trim();
+  if (language !== 'tr') return title || stepId;
+  return title || TURKISH_STEP_LABELS[stepId] || stepId;
 }
 
 export function customizationOptionLabel(language: KioskLanguage, stepId: string, option: ModifierOption) {

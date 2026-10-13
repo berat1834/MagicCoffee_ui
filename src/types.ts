@@ -1,4 +1,4 @@
-export type Screen = 'intro' | 'order-type' | 'catalog' | 'payment' | 'success';
+export type Screen = 'intro' | 'home' | 'catalog' | 'payment' | 'success';
 export type Fulfillment = 'restaurant' | 'package';
 export type ProductKind = 'coffee' | 'cold-coffee' | 'simple';
 
@@ -29,6 +29,7 @@ export type CustomizationStep = {
 
 export type Product = {
   id: string;
+  sectionId?: string;
   categoryId: string;
   name: string;
   description: string;
@@ -45,9 +46,26 @@ export type Product = {
   customization?: Record<string, CustomizationStep>;
 };
 
+export type SectionSummary = {
+  id: string;
+  name: string;
+  tagline?: string;
+  icon?: string;
+  accent?: string;
+  productCount?: number;
+  position?: number;
+};
+
+export type KioskConfig = {
+  kiosk: { id: string; name: string; featuredSectionId: string; orderPrefix?: string; posConfigured: boolean };
+  brand: { name: string; currency: string };
+  sections: SectionSummary[];
+};
+
 export type Catalog = {
-  brand: { name: string; currency: string; version: string };
+  brand: { name: string; currency: string; version?: string };
   language?: 'tr' | 'en';
+  section?: SectionSummary | null;
   categories: Category[];
   products: Product[];
 };
