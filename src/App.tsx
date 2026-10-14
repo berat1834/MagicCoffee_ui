@@ -1,11 +1,12 @@
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, Cpu, CreditCard, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Coffee, Cpu, CreditCard, Hand, Languages, Minus, Package, Plus, RotateCcw, ShoppingBag, Trash2, Undo2, UtensilsCrossed, Volume2, VolumeX, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { assetUrl, cancelPosPayment, fetchCastlesDevices, fetchCatalog, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type CastlesDeviceOption, type PosPaymentStatus } from './api';
+import { ApiError, assetUrl, cancelPosPayment, fetchCastlesDevices, fetchCatalog, fetchOrderVend, pollPosPayment, recordReceiptStatus, startPosPayment, submitOrder, uniqueRequestId, type CastlesDeviceOption, type PosPaymentStatus, type VendJob, type VendTracking } from './api';
 import { getKioskTerminalSerial, setKioskTerminalSerial } from './kioskSettings';
 import { customizationOptionLabel, customizationStepLabel } from './i18n/catalogLocalization';
 import { SUPPORTED_LANGUAGES, useKioskLanguage, type KioskLanguage } from './i18n/KioskLanguage';
-import { prepareOrderPrinter, printOrderReceiptOnce, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
+import { prepareOrderPrinter, printOrderReceiptOnce, type ReceiptLineMark, type ReceiptPrintStatus } from './printing/orderReceiptPrinter';
+import { machineVariantsOf, matchVariant, parseVariantKey, selectionLabel, variantCompatible, variantKeyOf } from './machineVariants';
 import type { CartLine, Catalog, CustomizationStep, Fulfillment, Product, Screen, Selection } from './types';
 
 const money = (amount: number) => `${amount.toFixed(2)} TL`;
@@ -201,12 +202,15 @@ function OrderType({ soundOn, onToggleSound, onContinue }: { soundOn: boolean; o
   </main>;
 }
 
+/** Kioskun kahve otomatından verilen ürün (katalogda otomat ürün numarası ya da varyantı olan). */
+const isMachineProduct = (product: Product) => product.machineSelection != null || machineVariantsOf(product) !== null;
+
 function ProductCard({ product, quantity, onClick }: { product: Product; quantity: number; onClick: () => void }) {
   const { t } = useKioskLanguage();
   const disabled = product.available === false;
   return <button type="button" className={`product-card ${disabled ? 'product-card--disabled' : ''}`} data-product-id={product.id} data-clickable="product" disabled={disabled}>
     {product.popular && <span className="product-card__popular">{t('product.popular')}</span>}{quantity > 0 && <span className="product-card__quantity">{quantity}</span>}
-    <div className={`product-card__visual ${product.image ? '' : 'product-card__visual--emoji'}`}>{product.image ? <img src={assetUrl(product.image)} alt={product.name} draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{product.emoji || '☕'}</span>}</div>
+    <div className={`product-card__visual ${product.image ? '' : 'product-card__visual--emoji'}`}>{product.image ? <img src={assetUrl(product.image)} alt={product.name} draggable={false} loading="eager" decoding="async" fetchPriority="high" /> : <span>{product.emoji || '☕'}</span>}{isMachineProduct(product) && <small className="product-card__machine"><Coffee aria-hidden="true" />{t('product.fromMachine')}</small>}</div>
     <div className="product-card__body"><small>{disabled ? product.unavailableReason : product.categoryId}</small><h3>{product.name}</h3><p>{product.description}</p><b>{money(product.price)}</b></div>
   </button>;
 }
@@ -343,22 +347,43 @@ function cartLineKey(product: Product, selection?: Selection) {
 function Customizer({ product, initial, onClose, onSave }: { product: Product; initial?: Selection; onClose: () => void; onSave: (selection: Selection, unitPrice: number) => void }) {
   const { language, t } = useKioskLanguage();
   const steps = Object.entries(product.customization ?? {}).filter(([, step]) => step.enabled && step.options.some((option) => option.enabled !== false));
-  const [choices, setChoices] = useState<Record<string, string[]>>(() => normalizeChoices(initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false && option.available !== false).map((option) => option.id)])), steps));
+  // Otomat kioskunda yalnız makinenin yapabildiği kombinasyonlar (varyantlar) seçilebilir.
+  const variants = machineVariantsOf(product);
+  const [choices, setChoices] = useState<Record<string, string[]>>(() => {
+    const defaults = normalizeChoices(initial?.choices ?? Object.fromEntries(steps.map(([id, step]) => [id, step.required ? [] : step.options.filter((option) => option.defaultSelected && option.enabled !== false && option.available !== false).map((option) => option.id)])), steps);
+    if (!variants || matchVariant(product, { choices: defaults })) return defaults;
+    const base = variants.find((variant) => !variantKeyOf(parseVariantKey(variant.optionKey))) ?? variants[0];
+    return normalizeChoices(parseVariantKey(base.optionKey), steps);
+  });
   const [index, setIndex] = useState(0);
   const [error, setError] = useState('');
   const current = steps[index];
   const requiredSelectionsComplete = steps.every(([id, step]) => !step.required || (choices[id] ?? []).length >= (step.minSelect ?? 1));
-  const unitPrice = useMemo(() => product.price + steps.reduce((sum, [id, step]) => sum + (choices[id] ?? []).reduce((optionSum, optionId) => optionSum + (step.options.find((option) => option.id === optionId)?.priceDelta ?? 0), 0), 0), [choices, product.price, steps]);
-  const toggle = (stepId: string, optionId: string, max = 1) => setChoices((currentChoices) => {
+  const variant = variants ? matchVariant(product, { choices }) : null;
+  const variantMissing = Boolean(variants) && !variant;
+  const unitPrice = useMemo(() => {
+    // Otomat eşlemesinde fiyat tanımlıysa satış fiyatı odur (API ödeme tutarını aynı fiyatla doğrular).
+    if (variant?.price != null) return Number(variant.price);
+    return product.price + steps.reduce((sum, [id, step]) => sum + (choices[id] ?? []).reduce((optionSum, optionId) => optionSum + (step.options.find((option) => option.id === optionId)?.priceDelta ?? 0), 0), 0);
+  }, [choices, product.price, steps, variant]);
+  const nextChoices = (currentChoices: Record<string, string[]>, stepId: string, optionId: string, max: number) => {
     const selected = currentChoices[stepId] ?? [];
     if (selected.includes(optionId)) return { ...currentChoices, [stepId]: selected.filter((id) => id !== optionId) };
     return { ...currentChoices, [stepId]: max === 1 ? [optionId] : [...selected, optionId].slice(0, max) };
-  });
+  };
+  /** Varyant modunda seçenek, en az bir makine varyantıyla uyumlu kalıyorsa seçilebilir. */
+  const optionAllowed = (stepId: string, optionId: string, max: number) => {
+    if (!variants || (choices[stepId] ?? []).includes(optionId)) return true;
+    return variantCompatible(variants, nextChoices(choices, stepId, optionId, max));
+  };
+  const toggle = (stepId: string, optionId: string, max = 1) => setChoices((currentChoices) => nextChoices(currentChoices, stepId, optionId, max));
   const next = () => {
     const [stepId, step] = current;
     if (step.required && (choices[stepId] ?? []).length < (step.minSelect ?? 1)) { setError(t('customizer.requiredError', { title: customizationStepLabel(language, stepId, step) })); return; }
     setError('');
-    if (index < steps.length - 1) setIndex(index + 1); else onSave({ choices: normalizeChoices(choices, steps) }, unitPrice);
+    if (index < steps.length - 1) { setIndex(index + 1); return; }
+    if (variantMissing) { setError(t('customizer.variantUnavailable')); return; }
+    onSave({ choices: normalizeChoices(choices, steps) }, unitPrice);
   };
   if (!current) return null;
   const [stepId, step] = current;
@@ -370,9 +395,12 @@ function Customizer({ product, initial, onClose, onSave }: { product: Product; i
     <div className="customizer__content"><div className="customizer__title"><span><small>{t('customizer.selection')}</small><h3>{customizationStepLabel(language, stepId, step)}</h3></span><p>{step.required ? t('customizer.required') : t('customizer.optional')}</p></div>
       <div className="option-list">{step.options.filter((option) => option.enabled !== false).map((option) => {
         const selected = (choices[stepId] ?? []).includes(option.id);
-        return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false} onClick={() => toggle(stepId, option.id, maxSelections(stepId, step))}><span>{selected && <Check />}</span><b>{customizationOptionLabel(language, stepId, option)}</b><small>{option.priceDelta ? `+${money(option.priceDelta)}` : option.available === false ? t('product.soldOut') : t('product.included')}</small></button>;
-      })}</div>{error && <div className="payment__error">{error}</div>}</div>
-    <footer><button className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button" disabled={index === steps.length - 1 && !requiredSelectionsComplete} onClick={next}>{index === steps.length - 1 ? t('common.addToCart') : t('common.continue')}</button></footer>
+        const allowed = optionAllowed(stepId, option.id, maxSelections(stepId, step));
+        // Otomat kioskunda fiyat farkı yerine seçimin toplam fiyatı varyanttan gelir; desteklenmeyen seçenekler kapalıdır.
+        const hint = option.available === false ? t('product.soldOut') : !allowed ? t('customizer.notOnMachine') : variants ? (selected ? t('product.included') : '') : option.priceDelta ? `+${money(option.priceDelta)}` : t('product.included');
+        return <button key={option.id} className={selected ? 'selected' : ''} disabled={option.available === false || !allowed} onClick={() => toggle(stepId, option.id, maxSelections(stepId, step))}><span>{selected && <Check />}</span><b>{customizationOptionLabel(language, stepId, option)}</b><small>{hint}</small></button>;
+      })}</div>{error && <div className="payment__error">{error}</div>}{!error && variantMissing && index === steps.length - 1 && <div className="payment__error">{t('customizer.variantUnavailable')}</div>}</div>
+    <footer><button className="secondary-button" onClick={onClose}>{t('common.cancel')}</button><button className="primary-button" disabled={index === steps.length - 1 && (!requiredSelectionsComplete || variantMissing)} onClick={next}>{index === steps.length - 1 ? t('common.addToCart') : t('common.continue')}</button></footer>
   </main>;
 }
 
@@ -387,11 +415,54 @@ function CartDrawer({ cart, onClose, onQuantity, onDelete, onEdit, onCheckout }:
   </main>;
 }
 
+/**
+ * Ödemesi alınmış, ürünleri kahve otomatında hazırlanan sipariş: vend sonuçları bitene kadar izlenir,
+ * fiş sonuçlar gelince basılır. Uygulama yeniden başlarsa izleme kaldığı yerden sürdürülür.
+ */
+type PendingVend = {
+  orderNumber: string;
+  createdAt: string;
+  method: 'card' | 'meal-card';
+  fulfillment: Fulfillment;
+  paymentReference: string;
+  language: KioskLanguage;
+  cart: CartLine[];
+  total: number;
+  startedAt: string;
+};
+const PENDING_VEND_KEY = 'magiccoffee.pendingVend';
+const PENDING_VEND_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function readPendingVend(): PendingVend | null {
+  try {
+    const raw = window.localStorage.getItem(PENDING_VEND_KEY);
+    const parsed = raw ? JSON.parse(raw) as PendingVend : null;
+    return parsed && typeof parsed.orderNumber === 'string' && parsed.orderNumber && Array.isArray(parsed.cart) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function savePendingVend(vend: PendingVend) {
+  try { window.localStorage.setItem(PENDING_VEND_KEY, JSON.stringify(vend)); } catch { /* Depolama yoksa izleme yalnız bu oturumda sürer. */ }
+}
+
+function clearPendingVend() {
+  try { window.localStorage.removeItem(PENDING_VEND_KEY); } catch { /* Depolama kullanılamıyor. */ }
+}
+
+const pendingVendFresh = (vend: PendingVend) => {
+  const startedAt = Date.parse(vend.startedAt);
+  return Number.isFinite(startedAt) && Date.now() - startedAt < PENDING_VEND_MAX_AGE_MS;
+};
+
+const isMachineLine = (line: CartLine) => isMachineProduct(line.product);
+
 const POS_SUCCESS = new Set<PosPaymentStatus>(['COMPLETED', 'PAID', 'SUCCESS', 'SUCCEEDED']);
 const POS_FAILURE = new Set<PosPaymentStatus>(['FAILED', 'ERROR', 'CANCELLED', 'CANCELED', 'DECLINED']);
 const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
-function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, onSuccess, onReceiptStatus }: { cart: CartLine[]; fulfillment: Fulfillment; onBack: () => void; onBeginPayment: () => void; onPaymentFailed: () => void; onSuccess: (orderNumber: string) => void; onReceiptStatus: (status: ReceiptPrintStatus) => void }) {
+function Payment({ cart, fulfillment, vendEnabled, onBack, onBeginPayment, onPaymentFailed, onSuccess, onVendStart, onReceiptStatus }: { cart: CartLine[]; fulfillment: Fulfillment; vendEnabled: boolean; onBack: () => void; onBeginPayment: () => void; onPaymentFailed: () => void; onSuccess: (orderNumber: string) => void; onVendStart: (vend: PendingVend) => void; onReceiptStatus: (status: ReceiptPrintStatus) => void }) {
   const { language, t } = useKioskLanguage();
   const [method, setMethod] = useState<'card' | 'meal-card' | null>(null);
   const [error, setError] = useState('');
@@ -419,6 +490,23 @@ function Payment({ cart, fulfillment, onBack, onBeginPayment, onPaymentFailed, o
       posTransactionId: transactionRef.current,
       language,
     });
+    if (order.vendStatus || (vendEnabled && cart.some(isMachineLine))) {
+      // Kahve otomatı ürünleri: fiş vend sonuçları bitince basılır; izleme kaydı yeniden başlatmaya karşı saklanır.
+      const vend: PendingVend = {
+        orderNumber: order.number,
+        createdAt: order.created_at ?? new Date().toISOString(),
+        method: selectedMethod,
+        fulfillment,
+        paymentReference: paymentReferenceRef.current,
+        language,
+        cart,
+        total,
+        startedAt: new Date().toISOString(),
+      };
+      savePendingVend(vend);
+      onVendStart(vend);
+      return;
+    }
     onSuccess(order.number);
     const receipt = await printOrderReceiptOnce({
       orderNumber: order.number,
@@ -524,9 +612,219 @@ function Success({ orderNumber, receiptStatus, onRestart }: { orderNumber: strin
   return <main className="success page-enter"><BrandMark /><span className="success__check"><CheckCircle2 /></span><p>{t('success.received')}</p><h1>{t('success.thanks')}</h1><h2>{t('success.preparing')}</h2><div><small>{t('success.number')}</small><b>{orderNumber}</b></div>{receiptStatus === 'printing' && <p className="success__receipt">{t('payment.printingReceipt')}</p>}{receiptStatus === 'printed' && <p className="success__receipt">{t('success.receiptPrinted')}</p>}{receiptStatus === 'failed' && <p className="success__receipt success__receipt--error">{t('success.receiptFailed')}</p>}<button className="primary-button" onClick={onRestart}><RotateCcw /> {t('success.newOrder')}</button></main>;
 }
 
+// ---------------------------------------------------------------- Kahve otomatı (vend) izleme
+
+const VEND_POLL_MS = 1500;
+/** Kredi modunda müşterinin makinede ürün düğmesine basması için süre (API ile aynı). */
+const VEND_CREDIT_WAIT_S = 120;
+/** İş başına üst sınır (kuyruk + köprü + hazırlama). */
+const VEND_JOB_LIMIT_MS = 4 * 60_000;
+/** İade (kart okutma dahil) için ek bekleme süresi. */
+const VEND_REFUND_LIMIT_MS = 4 * 60_000;
+const VEND_RESTART_MS = 20_000;
+const VEND_FINAL = new Set<VendJob['status']>(['SUCCESS', 'REFUNDED', 'REFUND_FAILED']);
+/** Makinede başarısız / zaman aşımı: iade sonucu bekleniyor. */
+const VEND_REFUND_PENDING = new Set<VendJob['status']>(['FAILED', 'EXPIRED']);
+const VEND_ACTIVE = new Set<VendJob['status']>(['QUEUED', 'SENT', 'WAITING_SELECTION', 'DISPENSING']);
+
+/** İşleri sepet satırlarına eşler (ürün kimliği > ad > otomat numarası); satır adedi kadar iş alınır. */
+function vendLineOf(cart: CartLine[], jobs: VendJob[]) {
+  const used = new Map<string, number>();
+  const result = new Map<string, CartLine | undefined>();
+  const machineLines = cart.filter(isMachineLine);
+  for (const job of jobs) {
+    const free = (line: CartLine) => (used.get(line.key) ?? 0) < line.quantity;
+    const line = machineLines.find((item) => free(item) && job.productId && item.product.id === job.productId)
+      ?? machineLines.find((item) => free(item) && job.productName && item.product.name === job.productName)
+      ?? machineLines.find((item) => free(item) && job.selectionNo != null && item.product.machineSelection === job.selectionNo)
+      ?? machineLines.find(free);
+    if (line) used.set(line.key, (used.get(line.key) ?? 0) + 1);
+    result.set(job.id, line);
+  }
+  return result;
+}
+
+/** Fişte işaretlenecek adetler: makinede hazırlanamayan işler satır bazında toplanır. */
+function vendReceiptMarks(cart: CartLine[], jobs: VendJob[]): ReceiptLineMark[] {
+  const lineOf = vendLineOf(cart, jobs);
+  const marks = new Map<string, ReceiptLineMark>();
+  for (const job of jobs) {
+    const status: ReceiptLineMark['status'] | null = job.status === 'REFUNDED' ? 'refunded' : job.status === 'REFUND_FAILED' ? 'refund-failed' : VEND_REFUND_PENDING.has(job.status) ? 'refunding' : null;
+    const line = lineOf.get(job.id);
+    if (!status || !line) continue;
+    const key = `${line.key}|${status}`;
+    const current = marks.get(key);
+    marks.set(key, { lineKey: line.key, status, quantity: (current?.quantity ?? 0) + 1 });
+  }
+  return [...marks.values()];
+}
+
+function VendScreen({ vend, onFinished, onRestart }: { vend: PendingVend; onFinished: (allSucceeded: boolean) => void; onRestart: () => void }) {
+  const { t } = useKioskLanguage();
+  const [tracking, setTracking] = useState<VendTracking | null>(null);
+  const [finished, setFinished] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const [receiptStatus, setReceiptStatus] = useState<ReceiptPrintStatus | 'printing'>('printing');
+  const [now, setNow] = useState(() => Date.now());
+  const waitingSinceRef = useRef(new Map<string, number>());
+  const finishedRef = useRef(false);
+  const lastRef = useRef<VendTracking | null>(null);
+  const onFinishedRef = useRef(onFinished);
+  onFinishedRef.current = onFinished;
+  const machineCount = vend.cart.filter(isMachineLine).reduce((sum, line) => sum + line.quantity, 0);
+
+  const finish = useCallback(async (result: VendTracking | null, expired: boolean) => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    setFinished(true);
+    setTimedOut(expired);
+    const jobs = result?.jobs ?? [];
+    onFinishedRef.current(jobs.length > 0 ? jobs.every((job) => job.status === 'SUCCESS') : !expired);
+    const receipt = await printOrderReceiptOnce({
+      orderNumber: vend.orderNumber,
+      createdAt: vend.createdAt,
+      fulfillment: vend.fulfillment,
+      paymentMethod: vend.method,
+      paymentReference: vend.paymentReference,
+      language: vend.language,
+      total: vend.total,
+      lines: vend.cart,
+      marks: vendReceiptMarks(vend.cart, jobs),
+    });
+    setReceiptStatus(receipt.status);
+    clearPendingVend();
+    recordReceiptStatus(vend.orderNumber, receipt).catch((receiptError) => {
+      console.warn('Fiş durumu API tarafına kaydedilemedi.', receiptError);
+    });
+  }, [vend]);
+
+  useEffect(() => {
+    if (finishedRef.current) return undefined;
+    let cancelled = false;
+    let timer: number | undefined;
+    let emptyResponses = 0;
+    let notFound = 0;
+    const started = Date.parse(vend.startedAt);
+    const deadline = (Number.isFinite(started) ? started : Date.now()) + Math.max(1, machineCount) * VEND_JOB_LIMIT_MS + VEND_REFUND_LIMIT_MS;
+    const tick = async () => {
+      try {
+        const next = await fetchOrderVend(vend.orderNumber);
+        if (cancelled) return;
+        notFound = 0;
+        lastRef.current = next;
+        setTracking(next);
+        const jobs = next.jobs;
+        emptyResponses = jobs.length ? 0 : emptyResponses + 1;
+        // FAILED/EXPIRED "iade sürüyor" ara durumudur: ekran yalnız tüm işler SUCCESS/REFUNDED/REFUND_FAILED olunca
+        // veya API siparişin vend sonucunu (vendStatus) bildirince biter.
+        const allFinal = jobs.length > 0 && jobs.every((job) => VEND_FINAL.has(job.status));
+        // İş oluşmadıysa (otomat pasif / eşleme yok) sipariş normal tamamlanmış sayılır.
+        if (allFinal || (jobs.length > 0 && next.vendStatus) || emptyResponses >= 3) { void finish(next, false); return; }
+        if (Date.now() >= deadline) { void finish(next, true); return; }
+      } catch (error) {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 404 && ++notFound >= 3 && !lastRef.current?.jobs.length) { void finish(null, false); return; }
+        if (Date.now() >= deadline) { void finish(lastRef.current, true); return; }
+      }
+      timer = window.setTimeout(() => { void tick(); }, VEND_POLL_MS);
+    };
+    void tick();
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [finish, machineCount, vend]);
+
+  useEffect(() => {
+    if (finished) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [finished]);
+
+  useEffect(() => {
+    if (!finished || receiptStatus === 'printing') return undefined;
+    const timeout = window.setTimeout(onRestart, VEND_RESTART_MS);
+    return () => window.clearTimeout(timeout);
+  }, [finished, onRestart, receiptStatus]);
+
+  const jobs = tracking?.jobs ?? [];
+  jobs.forEach((job) => { if (job.status === 'WAITING_SELECTION' && !waitingSinceRef.current.has(job.id)) waitingSinceRef.current.set(job.id, Date.now()); });
+  const lineOf = vendLineOf(vend.cart, jobs);
+  const amountOf = (job: VendJob) => job.amount ?? lineOf.get(job.id)?.unitPrice ?? 0;
+  const waiting = jobs.find((job) => job.status === 'WAITING_SELECTION');
+  /** "Latte · Büyük · Yulaf sütü": API varyant adı, yoksa sepet satırındaki seçimler. */
+  const jobName = (job: VendJob) => {
+    const line = lineOf.get(job.id);
+    const name = job.productName || line?.product.name || '-';
+    const variantName = job.variantLabel ?? (line ? selectionLabel(line.product, line.selection) : '');
+    return variantName ? `${name} · ${variantName}` : name;
+  };
+  const waitingName = waiting ? jobName(waiting) : '';
+  const secondsLeft = waiting ? Math.max(0, VEND_CREDIT_WAIT_S - Math.floor((now - (waitingSinceRef.current.get(waiting.id) ?? now)) / 1000)) : 0;
+  const doneCount = jobs.filter((job) => VEND_FINAL.has(job.status)).length;
+  /** İade POS'ta kart okutmayı bekliyor (CasPro Refund / Pavo kısmi iade). */
+  const cardRefunds = jobs.filter((job) => job.refund?.needsCard && !VEND_FINAL.has(job.status));
+  const cardRefundAmount = cardRefunds.reduce((sum, job) => sum + (job.refund?.amount ?? amountOf(job)), 0);
+  const allSucceeded = jobs.length > 0 && jobs.every((job) => job.status === 'SUCCESS');
+  const anyFailed = jobs.some((job) => job.status !== 'SUCCESS' && !VEND_ACTIVE.has(job.status));
+  const offline = tracking && !tracking.machineOnline && jobs.some((job) => VEND_ACTIVE.has(job.status));
+  const happy = allSucceeded || (!jobs.length && !timedOut);
+  const title = !finished ? t('vend.title') : timedOut ? t('vend.titleUnknown') : happy ? t('vend.titleDone') : anyFailed && jobs.some((job) => job.status === 'SUCCESS') ? t('vend.titlePartial') : t('vend.titleFailed');
+  const jobText = (job: VendJob) => {
+    const amount = money(amountOf(job));
+    switch (job.status) {
+      case 'QUEUED': return t('vend.queued');
+      case 'SENT':
+      case 'DISPENSING': return t('vend.preparing');
+      case 'WAITING_SELECTION': return job.wrongSelection ? t('vend.wrongSelection', { selection: job.selectionNo ?? '-' }) : t('vend.pressShort', { selection: job.selectionNo ?? '-' });
+      case 'SUCCESS': return t('vend.ready');
+      case 'FAILED':
+      case 'EXPIRED': return job.refund?.needsCard ? t('vend.refundingCard', { amount }) : t('vend.refunding', { amount });
+      case 'REFUNDED': return t('vend.refunded', { amount });
+      case 'REFUND_FAILED': return t('vend.refundFailed');
+      default: return '';
+    }
+  };
+  const jobTone = (job: VendJob) => job.status === 'SUCCESS' ? 'ok' : job.status === 'REFUND_FAILED' ? 'alert' : VEND_ACTIVE.has(job.status) ? (job.status === 'QUEUED' ? 'queued' : 'active') : 'refund';
+  const jobIcon = (job: VendJob) => job.status === 'SUCCESS' ? <CheckCircle2 /> : job.status === 'REFUND_FAILED' ? <AlertTriangle /> : job.status === 'WAITING_SELECTION' ? <Hand /> : VEND_ACTIVE.has(job.status) ? (job.status === 'QUEUED' ? <Coffee /> : <RotateCcw className="spin" />) : <Undo2 />;
+
+  return <main className={`vend page-enter ${finished ? 'vend--finished' : ''}`} aria-live="polite">
+    <BrandMark />
+    <span className={`vend__hero ${finished ? (happy ? 'vend__hero--ok' : 'vend__hero--warn') : ''}`}>{finished ? (happy ? <CheckCircle2 /> : <AlertTriangle />) : <Coffee />}</span>
+    <h1>{title}</h1>
+    {!finished && waiting && tracking?.mode !== 'REMOTE' && <section className="vend__press" role="alert">
+      <p>{t('vend.pressLead')}</p>
+      <b>{waiting.selectionNo ?? '-'}</b>
+      <p>{t('vend.pressTail')}</p>
+      {waitingName && <p className="vend__press-item">{waitingName}</p>}
+      {waiting.wrongSelection && <p className="vend__press-wrong">{t('vend.wrongSelection', { selection: waiting.selectionNo ?? '-' })}</p>}
+      <small>{t('vend.countdown', { seconds: secondsLeft })}</small>
+    </section>}
+    {!finished && cardRefunds.length > 0 && <section className="vend__press vend__press--refund" role="alert">
+      <CreditCard className="vend__press-icon" />
+      <p>{t('vend.refundCardTitle')}</p>
+      <b className="vend__press-amount">{money(cardRefundAmount)}</b>
+      <p className="vend__press-item">{t('vend.refundCardHint')}</p>
+    </section>}
+    {!finished && !waiting && cardRefunds.length === 0 && jobs.length > 0 && !jobs.some((job) => VEND_ACTIVE.has(job.status)) && jobs.some((job) => VEND_REFUND_PENDING.has(job.status)) && <p className="vend__status"><RotateCcw className="spin" /> {t('vend.refundInProgress')}</p>}
+    {!finished && !waiting && (!tracking || jobs.length === 0 || jobs.some((job) => VEND_ACTIVE.has(job.status))) && <p className="vend__status"><RotateCcw className="spin" /> {tracking ? t('vend.machinePreparing') : t('vend.connecting')}</p>}
+    {offline && <p className="vend__note"><AlertTriangle /> {t('vend.machineOffline')}</p>}
+    {timedOut && <p className="vend__note vend__note--alert"><AlertTriangle /> {t('vend.unknown')}</p>}
+    {jobs.length > 0 && <>
+      {!finished && <small className="vend__progress">{t('vend.progress', { done: doneCount, total: jobs.length })}</small>}
+      <ol className="vend__jobs">{jobs.map((job) => <li key={job.id} className={`vend-job vend-job--${jobTone(job)}`}>
+        <span className="vend-job__icon">{jobIcon(job)}</span>
+        <span className="vend-job__copy"><b>{jobName(job)}</b><small>{jobText(job)}</small></span>
+        {job.selectionNo != null && <em>#{job.selectionNo}</em>}
+      </li>)}</ol>
+    </>}
+    <div className="vend__order"><small>{t('success.number')}</small><b>{vend.orderNumber}</b></div>
+    {finished && receiptStatus === 'printing' && <p className="vend__receipt">{t('payment.printingReceipt')}</p>}
+    {finished && receiptStatus === 'printed' && <p className="vend__receipt">{t('success.receiptPrinted')}</p>}
+    {finished && receiptStatus === 'failed' && <p className="vend__receipt vend__receipt--error">{t('success.receiptFailed')}</p>}
+    {finished && receiptStatus !== 'printing' && <button className="primary-button" onClick={onRestart}><RotateCcw /> {t('success.newOrder')}</button>}
+  </main>;
+}
+
 export default function App() {
   const { language, setLanguage, t } = useKioskLanguage();
-  const [screen, setScreen] = useState<Screen>('intro');
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [catalogError, setCatalogError] = useState('');
   const [fulfillment, setFulfillment] = useState<Fulfillment>('restaurant');
@@ -540,6 +838,14 @@ export default function App() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [startPending, setStartPending] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
+  // Yarım kalmış (24 saatten yeni) otomat siparişi varsa izleme ve fiş kaldığı yerden sürdürülür.
+  const [vend, setVend] = useState<PendingVend | null>(() => {
+    const pending = readPendingVend();
+    if (pending && pendingVendFresh(pending)) return pending;
+    if (pending) clearPendingVend();
+    return null;
+  });
+  const [screen, setScreen] = useState<Screen>(() => (vend ? 'vend' : 'intro'));
   const catalogRequestRef = useRef(0);
   const kioskAudio = useKioskAudio(soundOn, language);
   const loadCatalog = useCallback(() => {
@@ -606,9 +912,11 @@ export default function App() {
       return;
     }
     if (product.customizable && hasActiveCustomization(product)) { setEditing(null); setCustomizing(product); return; }
+    // Otomat kioskunda seçeneksiz ürünün fiyatı standart varyanttan gelir.
+    const unitPrice = Number(matchVariant(product, null)?.price ?? product.price);
     const key = cartLineKey(product);
     const nextQuantity = productCartQuantity(cart, product.id) + 1;
-    setCart((items) => items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1 } : line) : [...items, { key, product, quantity: 1, unitPrice: product.price }]);
+    setCart((items) => items.some((line) => line.key === key) ? items.map((line) => line.key === key ? { ...line, quantity: line.quantity + 1 } : line) : [...items, { key, product, quantity: 1, unitPrice }]);
     const nextNotice = addToCartNotice(product, nextQuantity, t);
     if (nextNotice) setNotice(nextNotice);
   };
@@ -651,6 +959,7 @@ export default function App() {
   });
   const restart = useCallback(() => {
     kioskAudio.stop();
+    setVend(null);
     setCart([]);
     setOrderNumber('');
     setReceiptStatus('printing');
@@ -664,6 +973,7 @@ export default function App() {
     const timeout = window.setTimeout(restart, 10000);
     return () => window.clearTimeout(timeout);
   }, [orderNumber, restart, screen]);
+  const vendEnabled = Boolean(catalog?.products.some(isMachineProduct));
   return <div className="app-shell kiosk-no-focus-ring">
     {screen === 'intro' && <Intro onStart={startOrder} loading={catalogLoading} />}
     {screen === 'order-type' && <OrderType soundOn={soundOn} onToggleSound={() => setSoundOn((value) => !value)} onContinue={(type) => { kioskAudio.stop(); kioskAudio.play('product-selection-prompt.mp3'); setFulfillment(type); setScreen('catalog'); }} />}
@@ -672,9 +982,10 @@ export default function App() {
     {!customizing && cartOpen !== 'full' && screen === 'catalog' && catalog && <CatalogScreen catalog={catalog} cart={cart} onProduct={addProduct} onHeaderCart={() => setCartOpen('full')} onBottomCart={() => setCartOpen('sheet')} />}
     {!customizing && cartOpen === 'full' && <CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} />}
     {!customizing && cartOpen === 'sheet' && <div className="cart-sheet-layer"><button type="button" className="cart-sheet-backdrop" onClick={() => setCartOpen(null)} aria-label={t('common.close')} /><CartDrawer cart={cart} onClose={() => setCartOpen(null)} onQuantity={updateQuantity} onDelete={(key) => setCart((items) => items.filter((line) => line.key !== key))} onEdit={(line) => { setEditing(line); setCustomizing(line.product); setCartOpen(null); }} onCheckout={() => { kioskAudio.play('payment-method-selection.mp3'); setCartOpen(null); setScreen('payment'); }} /></div>}
-    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} onBack={() => { kioskAudio.stop(); setScreen('catalog'); setCartOpen('full'); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onReceiptStatus={setReceiptStatus} />}
+    {!customizing && !cartOpen && screen === 'payment' && <Payment cart={cart} fulfillment={fulfillment} vendEnabled={vendEnabled} onBack={() => { kioskAudio.stop(); setScreen('catalog'); setCartOpen('full'); }} onBeginPayment={() => kioskAudio.play('card-reader-prompt.mp3')} onPaymentFailed={() => kioskAudio.playSequence(['payment-failed-notice.mp3', 'payment-failed-prompt.mp3'])} onSuccess={(number) => { kioskAudio.playSequence(['order-complete-success.mp3', 'order-created.mp3']); setOrderNumber(number); setReceiptStatus('printing'); setCart([]); setScreen('success'); }} onVendStart={(next) => { kioskAudio.play('order-complete-success.mp3'); setVend(next); setCart([]); setScreen('vend'); }} onReceiptStatus={setReceiptStatus} />}
+    {!customizing && !cartOpen && screen === 'vend' && vend && <VendScreen key={vend.orderNumber} vend={vend} onFinished={(allSucceeded) => { if (allSucceeded) kioskAudio.play('order-created.mp3'); }} onRestart={restart} />}
     {!customizing && !cartOpen && screen === 'success' && <Success orderNumber={orderNumber} receiptStatus={receiptStatus} onRestart={restart} />}
-    {catalogError && !catalog && <div className="load-error"><BrandMark /><h2>{t('loading.catalogError')}</h2><p>{t('loading.catalogErrorHint')}</p><button className="primary-button" onClick={loadCatalog}>{t('common.retry')}</button></div>}
-    {screen !== 'intro' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>{t('loading.catalog')}</p></div>}
+    {catalogError && !catalog && screen !== 'vend' && <div className="load-error"><BrandMark /><h2>{t('loading.catalogError')}</h2><p>{t('loading.catalogErrorHint')}</p><button className="primary-button" onClick={loadCatalog}>{t('common.retry')}</button></div>}
+    {screen !== 'intro' && screen !== 'vend' && !catalog && !catalogError && <div className="loading"><BrandMark light /><span /><p>{t('loading.catalog')}</p></div>}
   </div>;
 }

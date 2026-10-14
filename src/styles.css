@@ -3643,3 +3643,57 @@ html.portrait-kiosk.short-viewport .order-type__grid button {
 .kiosk-settings__hint { padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 10px; }
 .kiosk-settings__hint svg { width: 16px; }
 .kiosk-settings__actions { width: 100%; margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ---------- Kahve otomatı: "Otomattan" rozeti ve vend izleme ekranı ---------- */
+.product-card__visual { position: relative; }
+.product-card__machine { position: absolute; z-index: 2; left: 5px; bottom: 5px; display: inline-flex; align-items: center; gap: 2px; padding: 2px 5px; border-radius: 99px; color: var(--coffee); background: rgba(255, 255, 255, .94); box-shadow: 0 2px 6px rgba(58, 30, 20, .16); font-size: 5px; font-weight: 900; letter-spacing: .02em; pointer-events: none; }
+.product-card__machine svg { width: 7px; height: 7px; }
+html.android-kiosk.portrait-kiosk .product-card__machine { left: 12px; bottom: 12px; gap: 5px; padding: 6px 12px; font-size: 11px; }
+html.android-kiosk.portrait-kiosk .product-card__machine svg { width: 14px; height: 14px; }
+
+.vend { min-height: var(--kiosk-height, 100vh); padding: 32px 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--ink); background: radial-gradient(circle at 50% 20%, #fff 0, #fff7f1 48%, #f5ebe4 100%); overflow-y: auto; }
+html.android-kiosk.portrait-kiosk .vend { height: calc(var(--kiosk-height, 100vh) - 56px); min-height: calc(var(--kiosk-height, 100vh) - 56px); max-height: calc(var(--kiosk-height, 100vh) - 56px); }
+.vend > .brand-mark { margin-bottom: 6px; }
+.vend__hero { width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; color: white; background: linear-gradient(135deg, var(--coffee), var(--caramel)); box-shadow: 0 0 0 14px rgba(111, 63, 36, .1), 0 14px 30px rgba(51, 24, 15, .25); animation: vendPulse 1.8s ease-in-out infinite; }
+.vend__hero svg { width: 54px; height: 54px; }
+.vend__hero--ok { background: #1aa263; box-shadow: 0 0 0 14px rgba(26, 162, 99, .1), 0 14px 30px rgba(15, 114, 68, .2); animation: none; }
+.vend__hero--warn { background: #c2410c; box-shadow: 0 0 0 14px rgba(194, 65, 12, .1), 0 14px 30px rgba(154, 52, 18, .2); animation: none; }
+@keyframes vendPulse { 50% { transform: scale(1.05); } }
+.vend h1 { margin: 8px 0 0; font-size: clamp(28px, 6vw, 44px); line-height: 1.1; letter-spacing: -.03em; }
+.vend__status { margin: 0; display: inline-flex; align-items: center; gap: 8px; color: var(--coffee); font-size: 15px; font-weight: 800; }
+.vend__status svg { width: 20px; height: 20px; }
+.vend__press { width: 100%; max-width: 440px; padding: 18px; border: 3px solid var(--coffee); border-radius: 24px; background: white; box-shadow: 0 14px 32px rgba(58, 30, 20, .1); }
+.vend__press p { margin: 0; font-size: 19px; font-weight: 800; }
+.vend__press b { display: block; margin: 4px 0; color: var(--coffee); font-size: 96px; line-height: 1; letter-spacing: -.04em; }
+.vend__press small { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 99px; color: white; background: var(--coffee); font-size: 13px; font-weight: 900; }
+.vend__press-item { margin-top: 6px !important; color: var(--muted); font-size: 15px !important; }
+.vend__press-wrong { margin-top: 10px !important; padding: 8px 10px; border-radius: 12px; color: #991b1b; background: #fee2e2; font-size: 15px !important; }
+.vend__press--refund { border-color: #c2410c; }
+.vend__press-icon { width: 48px; height: 48px; color: #c2410c; }
+.vend__press b.vend__press-amount { color: #c2410c; font-size: 52px; }
+.vend__note { margin: 0; max-width: 440px; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; color: #92400e; background: #fef3c7; font-size: 13px; font-weight: 800; text-align: left; }
+.vend__note svg { width: 18px; height: 18px; flex-shrink: 0; }
+.vend__note--alert { color: #991b1b; background: #fee2e2; }
+.vend__progress { color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.vend__jobs { width: 100%; max-width: 460px; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.vend-job { padding: 10px 12px; border: 1px solid var(--line); border-radius: 16px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; background: white; text-align: left; }
+.vend-job__icon { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: var(--coffee); background: #f6ebe3; }
+.vend-job__icon svg { width: 20px; height: 20px; }
+.vend-job__copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.vend-job__copy b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vend-job__copy small { color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.35; }
+.vend-job em { padding: 3px 9px; border-radius: 99px; color: var(--muted); background: #f3ece7; font-size: 11px; font-style: normal; font-weight: 900; }
+.vend-job--ok .vend-job__icon { color: white; background: #1aa263; }
+.vend-job--ok small { color: #167f50; }
+.vend-job--refund .vend-job__icon { color: #9a3412; background: #ffedd5; }
+.vend-job--refund small { color: #9a3412; }
+.vend-job--alert { border-color: #fca5a5; background: #fff5f5; }
+.vend-job--alert .vend-job__icon { color: white; background: #dc2626; }
+.vend-job--alert small { color: #991b1b; }
+.vend-job--queued { opacity: .7; }
+.vend__order { margin-top: 6px; padding: 14px 36px; border: 1px solid #eadbd2; border-radius: 20px; background: white; box-shadow: 0 10px 24px rgba(58, 30, 20, .07); }
+.vend__order small { display: block; color: var(--muted); font-size: 9px; letter-spacing: .2em; font-weight: 900; }
+.vend__order b { display: block; margin-top: 4px; color: var(--red); font-size: 36px; letter-spacing: -.03em; }
+.vend__receipt { margin: 0; color: #167f50; font-size: 13px; font-weight: 800; }
+.vend__receipt--error { color: #9d2431; }
+.vend > .primary-button { min-width: 220px; padding: 0 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }

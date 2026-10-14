@@ -243,10 +243,12 @@ public class UsbPrinterPlugin extends Plugin {
       Double totalValue = call.getDouble("total");
       double total = totalValue != null ? totalValue : 0.0;
       double subtotal = subtotalValue != null ? subtotalValue : total;
+      Double refundValue = call.getDouble("refundTotal");
+      double refundTotal = refundValue != null ? Math.max(0, refundValue) : 0.0;
       JSArray items = call.getArray("items");
       if (items == null) items = new JSArray();
 
-      receipt = drawOrderReceiptBitmap(orderNumber, createdAt, fulfillment, paymentMethod, paymentReference, language, currency, subtotal, total, items);
+      receipt = drawOrderReceiptBitmap(orderNumber, createdAt, fulfillment, paymentMethod, paymentReference, language, currency, subtotal, total, items, refundTotal);
       writeOrderReceiptBitmap(receipt);
 
       JSObject ret = new JSObject();
@@ -604,7 +606,7 @@ public class UsbPrinterPlugin extends Plugin {
     sauce.put("unitPrice", 20.0);
     items.put(sauce);
 
-    Bitmap bmp = drawOrderReceiptBitmap(orderCode, "", "Restoranda", "Kredi / Banka Kartı", "TEST-REF", "tr", "TL", 382.0, 382.0, items);
+    Bitmap bmp = drawOrderReceiptBitmap(orderCode, "", "Restoranda", "Kredi / Banka Kartı", "TEST-REF", "tr", "TL", 382.0, 382.0, items, 0.0);
     try {
       writeOrderReceiptBitmap(bmp);
     } finally {
@@ -631,10 +633,12 @@ public class UsbPrinterPlugin extends Plugin {
     String currency,
     double subtotal,
     double total,
-    JSArray items
+    JSArray items,
+    double refundTotal
   ) throws Exception {
     final int width = 576;
-    final int workingHeight = Math.max(1300, 680 + (items != null ? items.length() * 170 : 0));
+    // İade satırları (ürün başına durum etiketi + iade/net toplam) için ek pay bırakılır.
+    final int workingHeight = Math.max(1300, 680 + (items != null ? items.length() * 215 : 0) + (refundTotal > 0.005 ? 80 : 0));
     final int ink = Color.BLACK;
     final int paper = Color.WHITE;
     final float left = 28;
@@ -738,6 +742,18 @@ public class UsbPrinterPlugin extends Plugin {
       }
       y += Math.max(1, nameLines.size()) * 25;
 
+      // Otomatta hazırlanamayan adetler: "İADE EDİLDİ" gibi durum etiketi kalın basılır.
+      String mark = receiptText(item.optString("mark", ""));
+      if (!mark.isEmpty()) {
+        paint.setTypeface(LABEL_TYPEFACE);
+        paint.setTextSize(16);
+        for (String line : wrapReceiptText(paint, "*** " + mark + " ***", right - 96, 2)) {
+          canvas.drawText(line, 82, y, paint);
+          y += 22;
+        }
+        paint.setTypeface(TEXT_TYPEFACE);
+      }
+
       if (quantity > 1) {
         paint.setTypeface(TEXT_TYPEFACE);
         paint.setTextSize(14);
@@ -784,6 +800,18 @@ public class UsbPrinterPlugin extends Plugin {
     paint.setTextSize(29);
     drawReceiptRightText(canvas, paint, moneyText(total, currency), right - 18, y + 45);
     y += 101;
+
+    // Otomatta hazırlanamayıp karta iade edilen tutar ve net ödenen.
+    if (refundTotal > 0.005) {
+      paint.setTypeface(LABEL_TYPEFACE);
+      paint.setTextSize(16);
+      canvas.drawText("en".equals(language) ? "REFUNDED" : "İADE EDİLEN", left + 18, y, paint);
+      drawReceiptRightText(canvas, paint, "-" + moneyText(refundTotal, currency), right - 18, y);
+      y += 28;
+      canvas.drawText("en".equals(language) ? "NET PAID" : "NET ÖDENEN", left + 18, y, paint);
+      drawReceiptRightText(canvas, paint, moneyText(Math.max(0, total - refundTotal), currency), right - 18, y);
+      y += 46;
+    }
 
     paint.setTypeface(LABEL_TYPEFACE);
     paint.setTextSize(13);

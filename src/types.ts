@@ -1,4 +1,4 @@
-export type Screen = 'intro' | 'order-type' | 'catalog' | 'payment' | 'success';
+export type Screen = 'intro' | 'order-type' | 'catalog' | 'payment' | 'success' | 'vend';
 export type Fulfillment = 'restaurant' | 'package';
 export type ProductKind = 'coffee' | 'cold-coffee' | 'simple';
 
@@ -43,7 +43,14 @@ export type Product = {
   stockQuantity?: number | null;
   stockTrackingEnabled?: boolean;
   customization?: Record<string, CustomizationStep>;
+  /** Kioskun bağlı kahve otomatındaki ürün numarası (otomattan verilmeyen ürünlerde null/yok). */
+  machineSelection?: number | null;
+  /** Otomat kioskunda ürünün makinede yapılabilen seçenek kombinasyonları; yalnız bunlar seçilebilir. */
+  machineVariants?: MachineVariant[] | null;
 };
+
+/** Ürün × seçenek kombinasyonu → makine ürün numarası (optionKey: machineVariants.ts kanonik biçimi; "" standart hal). */
+export type MachineVariant = { optionKey: string; selectionNo: number; price?: number | null };
 
 export type Catalog = {
   brand: { name: string; currency: string; version: string };
